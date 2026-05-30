@@ -40,7 +40,7 @@ public class TimeSlotService {
 
     public List<TimeSlot> getAvailableSlots() {
         return timeSlotRepository.findAll().stream()
-                .filter(TimeSlot::getIsAvailable)
+                .filter(slot -> slot.getIsAvailable() != null && slot.getIsAvailable())
                 .toList();
     }
 

@@ -1,12 +1,13 @@
 package ma.medisync.medisync_backend.dto;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
+import lombok.*;
 
 @Data
-@Builder
+@NoArgsConstructor
 @AllArgsConstructor
+@Builder
+@Getter
+@Setter
 public class LoginResponse {
     private String token;
     private Long userId;

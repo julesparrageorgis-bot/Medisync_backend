@@ -11,8 +11,8 @@ import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
 
-@Component
 @Slf4j
+@Component
 public class JwtTokenProvider {
 
     @Value("${jwt.secret}")

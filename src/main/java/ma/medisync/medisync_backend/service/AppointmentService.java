@@ -56,6 +56,8 @@ public class AppointmentService {
         Optional<Appointment> appointment = appointmentRepository.findById(id);
         if (appointment.isPresent()) {
             Appointment a = appointment.get();
+            a.setAppointmentDate(appointmentDetails.getAppointmentDate());
+            a.setAppointmentTime(appointmentDetails.getAppointmentTime());
             a.setStatus(appointmentDetails.getStatus());
             a.setReason(appointmentDetails.getReason());
             a.setNotes(appointmentDetails.getNotes());
@@ -65,22 +67,43 @@ public class AppointmentService {
         return null;
     }
 
-    public boolean cancelAppointment(Long id) {
-        Optional<Appointment> appointment = appointmentRepository.findById(id);
-        if (appointment.isPresent()) {
-            Appointment a = appointment.get();
-            a.setStatus("CANCELLED");
-            appointmentRepository.save(a);
-            return true;
-        }
-        return false;
-    }
-
     public boolean deleteAppointment(Long id) {
         if (appointmentRepository.existsById(id)) {
             appointmentRepository.deleteById(id);
             return true;
         }
         return false;
+    }
+
+    public List<Appointment> getAppointmentsByPatient(Long patientId) {
+        return appointmentRepository.findAll().stream()
+                .filter(appt -> appt.getPatient() != null && appt.getPatient().getId().equals(patientId))
+                .toList();
+    }
+
+    public List<Appointment> getAppointmentsByDoctor(Long doctorId) {
+        return appointmentRepository.findAll().stream()
+                .filter(appt -> appt.getDoctor() != null && appt.getDoctor().getId().equals(doctorId))
+                .toList();
+    }
+
+    public Appointment cancelAppointment(Long id) {
+        Optional<Appointment> appointment = appointmentRepository.findById(id);
+        if (appointment.isPresent()) {
+            Appointment a = appointment.get();
+            a.setStatus("CANCELLED");
+            return appointmentRepository.save(a);
+        }
+        return null;
+    }
+
+    public Appointment confirmAppointment(Long id) {
+        Optional<Appointment> appointment = appointmentRepository.findById(id);
+        if (appointment.isPresent()) {
+            Appointment a = appointment.get();
+            a.setStatus("CONFIRMED");
+            return appointmentRepository.save(a);
+        }
+        return null;
     }
 }

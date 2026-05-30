@@ -128,4 +128,16 @@ public class AdminService {
     public long getTotalAdminsCount() {
         return adminRepository.count();
     }
+
+    public boolean grantPermission(Long id, String permission) {
+        Optional<Admin> admin = adminRepository.findById(id);
+        if (admin.isPresent()) {
+            Admin a = admin.get();
+            // Simplified: just set permissions as string
+            a.setPermissions(permission);
+            adminRepository.save(a);
+            return true;
+        }
+        return false;
+    }
 }

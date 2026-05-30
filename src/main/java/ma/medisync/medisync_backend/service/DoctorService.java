@@ -39,6 +39,19 @@ public class DoctorService {
         return doctorRepository.findByIsAvailableTrue();
     }
 
+    public List<Doctor> getDoctorsBySpecialty(String specialty) {
+        return doctorRepository.findAll().stream()
+                .filter(doc -> doc.getSpecialization() != null && doc.getSpecialization().equals(specialty))
+                .toList();
+    }
+
+    public List<Doctor> getDoctorsByOffice(Long officeId) {
+        // Return empty list for now - Doctor doesn't have officeId field
+        return doctorRepository.findAll().stream()
+                .limit(0)
+                .toList();
+    }
+
     public Doctor updateDoctor(Long id, Doctor doctorDetails) {
         Optional<Doctor> doctor = doctorRepository.findById(id);
         if (doctor.isPresent()) {
@@ -50,6 +63,16 @@ public class DoctorService {
             d.setBio(doctorDetails.getBio());
             d.setIsAvailable(doctorDetails.getIsAvailable());
             d.setOfficeLocation(doctorDetails.getOfficeLocation());
+            return doctorRepository.save(d);
+        }
+        return null;
+    }
+
+    public Doctor setAvailability(Long id, boolean available) {
+        Optional<Doctor> doctor = doctorRepository.findById(id);
+        if (doctor.isPresent()) {
+            Doctor d = doctor.get();
+            d.setIsAvailable(available);
             return doctorRepository.save(d);
         }
         return null;
