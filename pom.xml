@@ -24,6 +24,41 @@
         <maven.compiler.target>17</maven.compiler.target>
     </properties>
     <dependencies>
+        <!-- TOTP for 2FA -->
+<dependency>
+    <groupId>dev.samstevens.totp</groupId>
+    <artifactId>totp-spring-boot-starter</artifactId>
+    <version>1.7.1</version>
+</dependency>
+
+<!-- iText for PDF generation -->
+<dependency>
+    <groupId>com.itextpdf</groupId>
+    <artifactId>itext7-core</artifactId>
+    <version>7.2.5</version>
+    <type>pom</type>
+</dependency>
+
+<!-- Apache Commons Validator -->
+<dependency>
+    <groupId>commons-validator</groupId>
+    <artifactId>commons-validator</artifactId>
+    <version>1.7</version>
+</dependency>
+
+<!-- Excel export -->
+<dependency>
+    <groupId>org.apache.poi</groupId>
+    <artifactId>poi-ooxml</artifactId>
+    <version>5.2.5</version>
+</dependency>
+
+<!-- DICOM support (minimal) -->
+<dependency>
+    <groupId>org.dcm4che</groupId>
+    <artifactId>dcm4che-core</artifactId>
+    <version>5.30.2</version>
+</dependency>
         <!-- Spring Boot Starters -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
