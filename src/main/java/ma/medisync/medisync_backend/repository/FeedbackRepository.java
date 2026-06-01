@@ -1,9 +1,9 @@
-package com.medisync.repository;
+package ma.medisync.medisync_backend.repository;
 
-import com.medisync.entity.Feedback;
+import ma.medisync.medisync_backend.entity.Review;
 import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
 
-public interface FeedbackRepository extends JpaRepository<Feedback, Long> {
-    List<Feedback> findByPatientId(Long patientId);
+public interface FeedbackRepository extends JpaRepository<Review, Long> {
+    List<Review> findByPatientId(Long patientId);
 }

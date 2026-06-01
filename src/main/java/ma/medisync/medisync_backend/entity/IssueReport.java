@@ -1,4 +1,4 @@
-package com.medisync.entity;
+package ma.medisync.medisync_backend.entity;
 
 import jakarta.persistence.*;
 import lombok.Data;

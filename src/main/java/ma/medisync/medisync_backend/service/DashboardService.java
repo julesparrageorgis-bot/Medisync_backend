@@ -1,9 +1,9 @@
-package com.medisync.service;
+package ma.medisync.medisync_backend.service;
 
-import com.medisync.dto.DashboardResponse;
-import com.medisync.repository.AppointmentRepository;
-import com.medisync.repository.InvoiceRepository;
-import com.medisync.repository.PaymentRepository;
+import ma.medisync.medisync_backend.dto.DashboardResponse;
+import ma.medisync.medisync_backend.repository.AppointmentRepository;
+import ma.medisync.medisync_backend.repository.InvoiceRepository;
+import ma.medisync.medisync_backend.repository.PaymentRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import java.math.BigDecimal;

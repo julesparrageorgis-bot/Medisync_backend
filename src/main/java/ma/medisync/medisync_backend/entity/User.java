@@ -2,6 +2,9 @@ package ma.medisync.medisync_backend.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import ma.medisync.medisync_backend.entity.enums.UserRole;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -11,25 +14,36 @@ import java.util.Collection;
 import java.util.List;
 
 @Entity
-@Table(name = "users")
+@Table(name = "users", indexes = {
+    @Index(name = "idx_email", columnList = "email", unique = true)
+})
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@EqualsAndHashCode(exclude = {"createdAt", "updatedAt"})
+@ToString(exclude = {"password"})
+@Inheritance(strategy = InheritanceType.JOINED)
+@DiscriminatorColumn(name = "user_type", discriminatorType = DiscriminatorType.STRING)
 public class User implements UserDetails {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(unique = true, nullable = false)
+    @Column(unique = true, nullable = false, length = 100)
     private String email;
 
     @Column(nullable = false)
     private String password;
 
+    @Column(length = 50)
     private String firstName;
+
+    @Column(length = 50)
     private String lastName;
+
+    @Column(length = 20)
     private String phone;
 
     @Enumerated(EnumType.STRING)
@@ -41,19 +55,24 @@ public class User implements UserDetails {
     private Boolean isActive = true;
 
     private LocalDateTime lastLogin;
+
+    @CreationTimestamp
+    @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
+
+    @UpdateTimestamp
+    @Column(nullable = false)
     private LocalDateTime updatedAt;
 
-    @PrePersist
-    protected void onCreate() {
-        createdAt = LocalDateTime.now();
-        updatedAt = LocalDateTime.now();
-    }
+    private String twoFactorSecret;
 
-    @PreUpdate
-    protected void onUpdate() {
-        updatedAt = LocalDateTime.now();
-    }
+    @Column(name = "two_factor_enabled")
+    @Builder.Default
+    private Boolean twoFactorEnabled = false;
+
+    @Column(name = "two_factor_verified")
+    @Builder.Default
+    private Boolean twoFactorVerified = false;
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
@@ -87,10 +106,13 @@ public class User implements UserDetails {
 
     @Override
     public boolean isEnabled() {
-        return isActive;
+        return isActive != null && isActive;
     }
 
-    public enum UserRole {
-        PATIENT, DOCTOR, SECRETARY, ADMIN
+    public String getFullName() {
+        if (firstName != null && lastName != null) {
+            return firstName + " " + lastName;
+        }
+        return firstName != null ? firstName : lastName != null ? lastName : email;
     }
 }

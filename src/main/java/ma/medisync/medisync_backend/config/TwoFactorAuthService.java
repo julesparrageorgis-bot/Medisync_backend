@@ -1,6 +1,7 @@
-package com.medisync.config;
+package ma.medisync.medisync_backend.config;
 
 import dev.samstevens.totp.code.*;
+import dev.samstevens.totp.qr.QrData;
 import dev.samstevens.totp.qr.QrGenerator;
 import dev.samstevens.totp.qr.ZxingPngQrGenerator;
 import dev.samstevens.totp.secret.DefaultSecretGenerator;
@@ -29,7 +30,12 @@ public class TwoFactorAuthService {
     }
 
     public byte[] generateQrCode(String secret, String email) throws Exception {
-        return qrGenerator.generate(getQrUri(secret, email));
+        QrData data = new QrData.Builder()
+                .label(email)
+                .secret(secret)
+                .issuer(issuer)
+                .build();
+        return qrGenerator.generate(data);
     }
 
     public boolean verifyCode(String secret, String code) {

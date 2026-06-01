@@ -1,6 +1,6 @@
-package com.medisync.repository;
+package ma.medisync.medisync_backend.repository;
 
-import com.medisync.entity.Availability;
+import ma.medisync.medisync_backend.entity.Availability;
 import org.springframework.data.jpa.repository.JpaRepository;
 import java.time.LocalDateTime;
 import java.util.List;

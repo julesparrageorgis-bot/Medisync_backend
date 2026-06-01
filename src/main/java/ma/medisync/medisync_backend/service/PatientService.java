@@ -2,7 +2,6 @@ package ma.medisync.medisync_backend.service;
 
 import lombok.RequiredArgsConstructor;
 import ma.medisync.medisync_backend.entity.Patient;
-import ma.medisync.medisync_backend.entity.User;
 import ma.medisync.medisync_backend.repository.PatientRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,7 +14,6 @@ import java.util.Optional;
 public class PatientService {
 
     private final PatientRepository patientRepository;
-    private final UserService userService;
 
     public Patient createPatient(Patient patient) {
         return patientRepository.save(patient);
@@ -37,12 +35,33 @@ public class PatientService {
         Optional<Patient> patient = patientRepository.findById(id);
         if (patient.isPresent()) {
             Patient p = patient.get();
-            p.setBloodType(patientDetails.getBloodType());
-            p.setAllergies(patientDetails.getAllergies());
-            p.setMedicalHistory(patientDetails.getMedicalHistory());
-            p.setIsInsured(patientDetails.getIsInsured());
-            p.setInsuranceCompany(patientDetails.getInsuranceCompany());
-            p.setInsurancePolicyNumber(patientDetails.getInsurancePolicyNumber());
+            if (patientDetails.getBloodType() != null) {
+                p.setBloodType(patientDetails.getBloodType());
+            }
+            if (patientDetails.getAllergies() != null) {
+                p.setAllergies(patientDetails.getAllergies());
+            }
+            if (patientDetails.getGender() != null) {
+                p.setGender(patientDetails.getGender());
+            }
+            if (patientDetails.getDateOfBirth() != null) {
+                p.setDateOfBirth(patientDetails.getDateOfBirth());
+            }
+            if (patientDetails.getAddress() != null) {
+                p.setAddress(patientDetails.getAddress());
+            }
+            if (patientDetails.getCity() != null) {
+                p.setCity(patientDetails.getCity());
+            }
+            if (patientDetails.getZipCode() != null) {
+                p.setZipCode(patientDetails.getZipCode());
+            }
+            if (patientDetails.getEmergencyContact() != null) {
+                p.setEmergencyContact(patientDetails.getEmergencyContact());
+            }
+            if (patientDetails.getEmergencyPhone() != null) {
+                p.setEmergencyPhone(patientDetails.getEmergencyPhone());
+            }
             return patientRepository.save(p);
         }
         return null;
@@ -54,16 +73,5 @@ public class PatientService {
             return true;
         }
         return false;
-    }
-
-    public boolean existsByUserId(Long userId) {
-        return patientRepository.existsByUserId(userId);
-    }
-
-    public List<Patient> getPatientsByCity(String city) {
-        // City field not in Patient entity - return empty list for now
-        return patientRepository.findAll().stream()
-                .limit(0)
-                .toList();
     }
 }

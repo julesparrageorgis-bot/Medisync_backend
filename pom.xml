@@ -53,13 +53,7 @@
     <version>5.2.5</version>
 </dependency>
 
-<!-- DICOM support (minimal) -->
-<dependency>
-    <groupId>org.dcm4che</groupId>
-    <artifactId>dcm4che-core</artifactId>
-    <version>5.30.2</version>
-</dependency>
-        <!-- Spring Boot Starters -->
+<!-- Spring Boot Starters -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
@@ -157,6 +151,13 @@
         <dependency>
             <groupId>com.fasterxml.jackson.datatype</groupId>
             <artifactId>jackson-datatype-jsr310</artifactId>
+        </dependency>
+
+        <!-- Hypersistence Utils for JSON types -->
+        <dependency>
+            <groupId>io.hypersistence</groupId>
+            <artifactId>hypersistence-utils-hibernate-62</artifactId>
+            <version>3.7.2</version>
         </dependency>
 
         <!-- Swagger/OpenAPI -->

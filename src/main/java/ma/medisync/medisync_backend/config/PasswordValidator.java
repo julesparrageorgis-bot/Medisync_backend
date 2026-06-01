@@ -1,4 +1,4 @@
-package com.medisync.config;
+package ma.medisync.medisync_backend.config;
 
 import org.springframework.stereotype.Component;
 import java.util.regex.Pattern;

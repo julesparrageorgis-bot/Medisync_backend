@@ -1,4 +1,4 @@
-package com.medisync.dto;
+package ma.medisync.medisync_backend.dto;
 
 import lombok.Data;
 import java.util.List;

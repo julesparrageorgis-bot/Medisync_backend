@@ -23,56 +23,43 @@ public class DoctorService {
         return doctorRepository.findById(id);
     }
 
-    public Optional<Doctor> getDoctorByUserId(Long userId) {
-        return doctorRepository.findByUserId(userId);
-    }
-
     public List<Doctor> getAllDoctors() {
         return doctorRepository.findAll();
     }
 
-    public List<Doctor> getDoctorsBySpecialization(String specialization) {
-        return doctorRepository.findBySpecialization(specialization);
+    public List<Doctor> getDoctorsBySpecialty(String specialty) {
+        return doctorRepository.findAll().stream()
+                .filter(doc -> doc.getSpecialties() != null && doc.getSpecialties().contains(specialty))
+                .toList();
     }
 
     public List<Doctor> getAvailableDoctors() {
-        return doctorRepository.findByIsAvailableTrue();
-    }
-
-    public List<Doctor> getDoctorsBySpecialty(String specialty) {
-        return doctorRepository.findAll().stream()
-                .filter(doc -> doc.getSpecialization() != null && doc.getSpecialization().equals(specialty))
-                .toList();
+        return doctorRepository.findByOfficeIsNotNull();
     }
 
     public List<Doctor> getDoctorsByOffice(Long officeId) {
-        // Return empty list for now - Doctor doesn't have officeId field
-        return doctorRepository.findAll().stream()
-                .limit(0)
-                .toList();
+        return doctorRepository.findByOfficeId(officeId);
     }
 
     public Doctor updateDoctor(Long id, Doctor doctorDetails) {
         Optional<Doctor> doctor = doctorRepository.findById(id);
         if (doctor.isPresent()) {
             Doctor d = doctor.get();
-            d.setSpecialization(doctorDetails.getSpecialization());
-            d.setLicenseNumber(doctorDetails.getLicenseNumber());
-            d.setConsultationFee(doctorDetails.getConsultationFee());
-            d.setYearsOfExperience(doctorDetails.getYearsOfExperience());
-            d.setBio(doctorDetails.getBio());
-            d.setIsAvailable(doctorDetails.getIsAvailable());
-            d.setOfficeLocation(doctorDetails.getOfficeLocation());
-            return doctorRepository.save(d);
-        }
-        return null;
-    }
-
-    public Doctor setAvailability(Long id, boolean available) {
-        Optional<Doctor> doctor = doctorRepository.findById(id);
-        if (doctor.isPresent()) {
-            Doctor d = doctor.get();
-            d.setIsAvailable(available);
+            if (doctorDetails.getSpecialties() != null) {
+                d.setSpecialties(doctorDetails.getSpecialties());
+            }
+            if (doctorDetails.getLicenseNumber() != null) {
+                d.setLicenseNumber(doctorDetails.getLicenseNumber());
+            }
+            if (doctorDetails.getConsultationRate() != null) {
+                d.setConsultationRate(doctorDetails.getConsultationRate());
+            }
+            if (doctorDetails.getLanguages() != null) {
+                d.setLanguages(doctorDetails.getLanguages());
+            }
+            if (doctorDetails.getOffice() != null) {
+                d.setOffice(doctorDetails.getOffice());
+            }
             return doctorRepository.save(d);
         }
         return null;
@@ -84,9 +71,5 @@ public class DoctorService {
             return true;
         }
         return false;
-    }
-
-    public boolean existsByUserId(Long userId) {
-        return doctorRepository.existsByUserId(userId);
     }
 }

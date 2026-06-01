@@ -1,6 +1,6 @@
-package com.medisync.repository;
+package ma.medisync.medisync_backend.repository;
 
-import com.medisync.entity.Payment;
+import ma.medisync.medisync_backend.entity.Payment;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import java.math.BigDecimal;

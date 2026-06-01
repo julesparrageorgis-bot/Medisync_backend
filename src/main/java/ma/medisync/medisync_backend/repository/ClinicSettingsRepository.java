@@ -1,6 +1,6 @@
-package com.medisync.repository;
+package ma.medisync.medisync_backend.repository;
 
-import com.medisync.entity.ClinicSettings;
+import ma.medisync.medisync_backend.entity.ClinicSettings;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface ClinicSettingsRepository extends JpaRepository<ClinicSettings, Long> {

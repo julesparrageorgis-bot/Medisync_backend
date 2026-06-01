@@ -1,6 +1,6 @@
-package com.medisync.repository;
+package ma.medisync.medisync_backend.repository;
 
-import com.medisync.entity.IssueReport;
+import ma.medisync.medisync_backend.entity.IssueReport;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface IssueReportRepository extends JpaRepository<IssueReport, Long> {

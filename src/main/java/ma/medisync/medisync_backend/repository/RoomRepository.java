@@ -1,6 +1,6 @@
-package com.medisync.repository;
+package ma.medisync.medisync_backend.repository;
 
-import com.medisync.entity.Room;
+import ma.medisync.medisync_backend.entity.Room;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface RoomRepository extends JpaRepository<Room, Long> {

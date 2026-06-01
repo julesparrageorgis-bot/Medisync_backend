@@ -1,4 +1,4 @@
-package com.medisync.service;
+package ma.medisync.medisync_backend.service;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -25,5 +25,20 @@ public class DocumentStorageService {
         Files.createDirectories(path.getParent());
         Files.write(path, file.getBytes());
         return newFileName;
+    }
+
+    public byte[] getFile(String fileName) throws IOException {
+        Path path = Paths.get(uploadDir, fileName);
+        if (!Files.exists(path)) {
+            throw new IllegalArgumentException("File not found: " + fileName);
+        }
+        return Files.readAllBytes(path);
+    }
+
+    public void deleteFile(String fileName) throws IOException {
+        Path path = Paths.get(uploadDir, fileName);
+        if (Files.exists(path)) {
+            Files.delete(path);
+        }
     }
 }

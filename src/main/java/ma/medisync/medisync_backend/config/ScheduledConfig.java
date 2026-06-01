@@ -1,4 +1,4 @@
-package com.medisync.config;
+package ma.medisync.medisync_backend.config;
 
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.EnableScheduling;

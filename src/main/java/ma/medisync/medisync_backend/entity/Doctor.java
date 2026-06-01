@@ -3,44 +3,50 @@ package ma.medisync.medisync_backend.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
+
 @Entity
-@Table(name = "doctors")
+@Table(name = "doctors", indexes = {
+    @Index(name = "idx_license", columnList = "license_number", unique = true)
+})
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
-@Getter
-@Setter
-public class Doctor {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+@EqualsAndHashCode(callSuper = true)
+@ToString(exclude = {"appointments", "medicalRecords", "prescriptions", "timeSlots", "reviews"})
+@DiscriminatorValue("DOCTOR")
+public class Doctor extends User {
 
-    @OneToOne
-    @JoinColumn(name = "user_id", nullable = false)
-    private User user;
-
-    @Column(length = 100, nullable = false)
-    private String specialization; // Cardiology, Dermatology, etc.
-
-    @Column(length = 20, nullable = false)
+    @Column(unique = true, length = 50)
     private String licenseNumber;
 
-    @Column(nullable = false)
-    @Builder.Default
-    private Double consultationFee = 0.0;
+    @Column(columnDefinition = "json")
+    private String specialties;  // JSON string
 
-    @Column(nullable = false)
-    @Builder.Default
-    private Integer yearsOfExperience = 0;
+    @Column(columnDefinition = "json")
+    private String languages;  // JSON string
 
-    @Column(columnDefinition = "TEXT")
-    private String bio;
+    @Column(precision = 10, scale = 2)
+    private BigDecimal consultationRate;
 
-    @Column(nullable = false)
-    @Builder.Default
-    private Boolean isAvailable = true;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "office_id")
+    private Office office;
 
-    @Column(length = 20)
-    private String officeLocation;
+    @OneToMany(mappedBy = "doctor", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private List<Appointment> appointments = new ArrayList<>();
+
+    @OneToMany(mappedBy = "doctor", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private List<MedicalRecord> medicalRecords = new ArrayList<>();
+
+    @OneToMany(mappedBy = "doctor", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private List<Prescription> prescriptions = new ArrayList<>();
+
+    @OneToMany(mappedBy = "doctor", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private List<TimeSlot> timeSlots = new ArrayList<>();
+
+    @OneToMany(mappedBy = "doctor", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private List<Review> reviews = new ArrayList<>();
 }

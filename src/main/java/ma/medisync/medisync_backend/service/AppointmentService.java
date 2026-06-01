@@ -5,6 +5,7 @@ import ma.medisync.medisync_backend.entity.Appointment;
 import ma.medisync.medisync_backend.repository.AppointmentRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -102,6 +103,24 @@ public class AppointmentService {
         if (appointment.isPresent()) {
             Appointment a = appointment.get();
             a.setStatus("CONFIRMED");
+            return appointmentRepository.save(a);
+        }
+        return null;
+    }
+
+    public List<Appointment> getUpcomingAppointments() {
+        return appointmentRepository.findAll().stream()
+                .filter(appt -> appt.getStatus() != null && 
+                               (appt.getStatus().equals("PENDING") || appt.getStatus().equals("CONFIRMED")))
+                .toList();
+    }
+
+    public Appointment rescheduleAppointment(Long id, Appointment appointmentDetails) {
+        Optional<Appointment> appointment = appointmentRepository.findById(id);
+        if (appointment.isPresent()) {
+            Appointment a = appointment.get();
+            a.setAppointmentDate(appointmentDetails.getAppointmentDate());
+            a.setAppointmentTime(appointmentDetails.getAppointmentTime());
             return appointmentRepository.save(a);
         }
         return null;

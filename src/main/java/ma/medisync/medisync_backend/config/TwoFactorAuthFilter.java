@@ -1,7 +1,7 @@
-package com.medisync.config;
+package ma.medisync.medisync_backend.config;
 
-import com.medisync.entity.User;
-import com.medisync.repository.UserRepository;
+import ma.medisync.medisync_backend.entity.User;
+import ma.medisync.medisync_backend.repository.UserRepository;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -29,7 +29,7 @@ public class TwoFactorAuthFilter extends OncePerRequestFilter {
         if (auth != null && auth.isAuthenticated() && !request.getRequestURI().startsWith("/api/auth/2fa")) {
             String email = auth.getName();
             User user = userRepository.findByEmail(email).orElse(null);
-            if (user != null && user.isTwoFactorEnabled() && !user.isTwoFactorVerified()) {
+            if (user != null && user.getTwoFactorEnabled() && !user.getTwoFactorVerified()) {
                 response.setStatus(HttpServletResponse.SC_FORBIDDEN);
                 response.getWriter().write("2FA verification required");
                 return;

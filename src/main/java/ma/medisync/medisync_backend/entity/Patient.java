@@ -2,40 +2,75 @@ package ma.medisync.medisync_backend.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import ma.medisync.medisync_backend.entity.enums.Gender;
+import org.hibernate.annotations.Type;
+import io.hypersistence.utils.hibernate.type.json.JsonType;
+
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
-@Table(name = "patients")
+@Table(name = "patients", indexes = {
+    @Index(name = "idx_ssn", columnList = "social_security_number", unique = true)
+})
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
-@Getter
-@Setter
-public class Patient {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+@EqualsAndHashCode(callSuper = true)
+@ToString(exclude = {"appointments", "medicalRecords", "prescriptions", "documents", "invoices", "reviews"})
+@DiscriminatorValue("PATIENT")
+public class Patient extends User {
 
-    @OneToOne
-    @JoinColumn(name = "user_id", nullable = false)
-    private User user;
+    @Column(unique = true, length = 50)
+    private String socialSecurityNumber;
 
-    @Column(length = 20)
-    private String bloodType; // O+, O-, A+, A-, B+, B-, AB+, AB-
+    private LocalDate dateOfBirth;
+
+    @Enumerated(EnumType.STRING)
+    private Gender gender;
+
+    @Column(length = 10)
+    private String bloodType;
+
+    @Type(JsonType.class)
+    @Column(columnDefinition = "json")
+    private List<String> allergies;
+
+    @Column(length = 255)
+    private String address;
 
     @Column(length = 100)
-    private String allergies;
+    private String city;
 
-    @Column(columnDefinition = "TEXT")
-    private String medicalHistory;
+    @Column(length = 10)
+    private String zipCode;
 
-    @Column(nullable = false)
-    @Builder.Default
-    private Boolean isInsured = false;
+    @Column(length = 100)
+    private String emergencyContact;
 
-    @Column(length = 50)
-    private String insuranceCompany;
+    @Column(length = 20)
+    private String emergencyPhone;
 
-    @Column(length = 50)
-    private String insurancePolicyNumber;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "office_id")
+    private Office office;
+
+    @OneToMany(mappedBy = "patient", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private List<Appointment> appointments = new ArrayList<>();
+
+    @OneToMany(mappedBy = "patient", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private List<MedicalRecord> medicalRecords = new ArrayList<>();
+
+    @OneToMany(mappedBy = "patient", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private List<Prescription> prescriptions = new ArrayList<>();
+
+    @OneToMany(mappedBy = "patient", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private List<MedicalDocument> documents = new ArrayList<>();
+
+    @OneToMany(mappedBy = "patient", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private List<Invoice> invoices = new ArrayList<>();
+
+    @OneToMany(mappedBy = "patient", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private List<Review> reviews = new ArrayList<>();
 }

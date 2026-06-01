@@ -1,6 +1,6 @@
-package com.medisync.repository;
+package ma.medisync.medisync_backend.repository;
 
-import com.medisync.entity.Tariff;
+import ma.medisync.medisync_backend.entity.Tariff;
 import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
 
