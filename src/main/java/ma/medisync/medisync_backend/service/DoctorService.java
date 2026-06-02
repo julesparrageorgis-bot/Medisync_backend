@@ -3,6 +3,9 @@ package ma.medisync.medisync_backend.service;
 import lombok.RequiredArgsConstructor;
 import ma.medisync.medisync_backend.entity.Doctor;
 import ma.medisync.medisync_backend.repository.DoctorRepository;
+import ma.medisync.medisync_backend.entity.enums.UserRole;
+import ma.medisync.medisync_backend.util.PasswordUtil;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
@@ -14,8 +17,13 @@ import java.util.Optional;
 public class DoctorService {
 
     private final DoctorRepository doctorRepository;
+    private final PasswordEncoder passwordEncoder;
 
     public Doctor createDoctor(Doctor doctor) {
+        doctor.setUserRole(UserRole.DOCTOR);
+        doctor.setIsActive(true);
+        PasswordUtil.validatePasswordStrength(doctor.getPassword());
+        doctor.setPassword(passwordEncoder.encode(doctor.getPassword()));
         return doctorRepository.save(doctor);
     }
 

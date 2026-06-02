@@ -3,6 +3,10 @@ package ma.medisync.medisync_backend.service;
 import lombok.RequiredArgsConstructor;
 import ma.medisync.medisync_backend.entity.Secretary;
 import ma.medisync.medisync_backend.repository.SecretaryRepository;
+import ma.medisync.medisync_backend.repository.UserRepository;
+import ma.medisync.medisync_backend.entity.enums.UserRole;
+import ma.medisync.medisync_backend.util.PasswordUtil;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
@@ -14,8 +18,15 @@ import java.util.Optional;
 public class SecretaryService {
 
     private final SecretaryRepository secretaryRepository;
+    private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
     public Secretary createSecretary(Secretary secretary) {
+        secretary.getUser().setUserRole(UserRole.SECRETARY);
+        secretary.getUser().setIsActive(true);
+        PasswordUtil.validatePasswordStrength(secretary.getUser().getPassword());
+        secretary.getUser().setPassword(passwordEncoder.encode(secretary.getUser().getPassword()));
+        userRepository.save(secretary.getUser());
         return secretaryRepository.save(secretary);
     }
 

@@ -6,6 +6,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import ma.medisync.medisync_backend.entity.Doctor;
 import ma.medisync.medisync_backend.service.DoctorService;
+import ma.medisync.medisync_backend.service.SecurityService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -22,6 +23,7 @@ import java.util.Optional;
 public class DoctorController {
 
     private final DoctorService doctorService;
+    private final SecurityService securityService;
 
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
@@ -76,6 +78,7 @@ public class DoctorController {
     @PreAuthorize("hasAnyRole('DOCTOR', 'ADMIN')")
     @Operation(summary = "Update doctor", description = "Update doctor information")
     public ResponseEntity<Doctor> updateDoctor(@PathVariable Long id, @RequestBody Doctor doctorDetails) {
+        securityService.assertDoctorSelf(id);
         Doctor updatedDoctor = doctorService.updateDoctor(id, doctorDetails);
         if (updatedDoctor != null) {
             return ResponseEntity.ok(updatedDoctor);

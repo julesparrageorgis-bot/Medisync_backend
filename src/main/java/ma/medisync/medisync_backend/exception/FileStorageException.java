@@ -16,7 +16,7 @@ public class FileStorageException extends RuntimeException {
     }
 
     public static FileStorageException invalidFileType() {
-        return new FileStorageException("Invalid file type. Allowed types: pdf, jpg, jpeg, png, doc, docx, xls, xlsx");
+        return new FileStorageException("Invalid file type. Allowed types: pdf, jpg, jpeg, png, dcm, dicom");
     }
 
     public static FileStorageException fileNotFound(String filename) {

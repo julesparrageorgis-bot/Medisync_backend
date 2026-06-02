@@ -4,7 +4,11 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import ma.medisync.medisync_backend.service.DocumentStorageService;
-import org.springframework.beans.factory.annotation.Autowired;
+import ma.medisync.medisync_backend.entity.MedicalDocument;
+import ma.medisync.medisync_backend.entity.Patient;
+import ma.medisync.medisync_backend.service.MedicalDocumentService;
+import ma.medisync.medisync_backend.service.SecurityService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -15,33 +19,69 @@ import org.springframework.web.multipart.MultipartFile;
 @RequestMapping("/api/documents")
 @Tag(name = "Documents", description = "Document storage and retrieval API")
 @SecurityRequirement(name = "JWT")
+@RequiredArgsConstructor
 public class DocumentController {
-    @Autowired
-    private DocumentStorageService storageService;
+    private final DocumentStorageService storageService;
+    private final MedicalDocumentService documentService;
+    private final SecurityService securityService;
 
     @PostMapping("/upload")
     @PreAuthorize("hasAnyRole('PATIENT', 'DOCTOR', 'SECRETARY', 'ADMIN')")
     @Operation(summary = "Upload a document", description = "Upload a file to storage")
-    public ResponseEntity<String> upload(@RequestParam("file") MultipartFile file) throws Exception {
+    public ResponseEntity<MedicalDocument> upload(@RequestParam("patientId") Long patientId,
+                                                   @RequestParam("documentType") String documentType,
+                                                   @RequestParam(value = "description", required = false) String description,
+                                                   @RequestParam("file") MultipartFile file) throws Exception {
+        securityService.assertCanAccessMedicalData(patientId);
         String fileName = storageService.storeFile(file);
-        return new ResponseEntity<>(fileName, HttpStatus.CREATED);
+        MedicalDocument document = MedicalDocument.builder()
+                .patient(patient(patientId))
+                .fileName(file.getOriginalFilename())
+                .filePath(fileName)
+                .fileType(file.getContentType())
+                .fileSize(file.getSize())
+                .documentType(documentType)
+                .description(description)
+                .uploadedBy(securityService.currentUser())
+                .build();
+        return new ResponseEntity<>(documentService.uploadDocument(document), HttpStatus.CREATED);
     }
 
-    @GetMapping("/download/{fileName}")
+    @GetMapping("/download/{id}")
     @PreAuthorize("hasAnyRole('PATIENT', 'DOCTOR', 'SECRETARY', 'ADMIN')")
     @Operation(summary = "Download a document", description = "Download a file by name")
-    public ResponseEntity<byte[]> download(@PathVariable String fileName) throws Exception {
-        byte[] fileContent = storageService.getFile(fileName);
+    public ResponseEntity<byte[]> download(@PathVariable Long id) throws Exception {
+        MedicalDocument document = documentService.getDocumentById(id)
+                .orElseThrow(() -> ma.medisync.medisync_backend.exception.ResourceNotFoundException.documentNotFound(id));
+        securityService.assertCanAccessMedicalData(document.getPatient().getId());
+        byte[] fileContent = storageService.getFile(document.getFilePath());
         return ResponseEntity.ok()
-                .header("Content-Disposition", "attachment; filename=\"" + fileName + "\"")
+                .header("Content-Disposition", "attachment; filename=\"" + document.getFileName() + "\"")
                 .body(fileContent);
     }
 
-    @DeleteMapping("/{fileName}")
+    @GetMapping("/patient/{patientId}")
+    @PreAuthorize("hasAnyRole('PATIENT', 'DOCTOR', 'ADMIN')")
+    public ResponseEntity<java.util.List<MedicalDocument>> patientDocuments(@PathVariable Long patientId) {
+        securityService.assertCanAccessMedicalData(patientId);
+        return ResponseEntity.ok(documentService.getPatientDocuments(patientId));
+    }
+
+    @DeleteMapping("/{id}")
     @PreAuthorize("hasAnyRole('PATIENT', 'DOCTOR', 'SECRETARY', 'ADMIN')")
     @Operation(summary = "Delete a document", description = "Delete a file from storage")
-    public ResponseEntity<Void> delete(@PathVariable String fileName) throws Exception {
-        storageService.deleteFile(fileName);
+    public ResponseEntity<Void> delete(@PathVariable Long id) throws Exception {
+        MedicalDocument document = documentService.getDocumentById(id)
+                .orElseThrow(() -> ma.medisync.medisync_backend.exception.ResourceNotFoundException.documentNotFound(id));
+        securityService.assertCanAccessMedicalData(document.getPatient().getId());
+        storageService.deleteFile(document.getFilePath());
+        documentService.deleteDocument(id);
         return ResponseEntity.noContent().build();
+    }
+
+    private Patient patient(Long id) {
+        Patient patient = new Patient();
+        patient.setId(id);
+        return patient;
     }
 }

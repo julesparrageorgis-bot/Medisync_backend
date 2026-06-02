@@ -12,6 +12,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.time.Duration;
 
 @Service
 @RequiredArgsConstructor
@@ -20,6 +21,7 @@ public class AppointmentService {
 
     private final AppointmentRepository appointmentRepository;
     private final TimeSlotRepository timeSlotRepository;
+    private final EmailService emailService;
 
     public Appointment createAppointment(Appointment appointment) {
         if (appointment.getDoctor() == null || appointment.getDoctor().getId() == null ||
@@ -31,6 +33,7 @@ public class AppointmentService {
         TimeSlot slot = timeSlotRepository
                 .findByDoctorIdAndStartTime(appointment.getDoctor().getId(), appointment.getAppointmentDate())
                 .orElseThrow(ValidationException::slotNotAvailable);
+        appointment.setDurationMinutes((int) Duration.between(slot.getStartTime(), slot.getEndTime()).toMinutes());
         if (!Boolean.TRUE.equals(slot.getIsAvailable()) ||
                 appointmentRepository.existsByDoctorIdAndAppointmentDateAndStatusNot(
                         appointment.getDoctor().getId(), appointment.getAppointmentDate(), "CANCELLED")) {
@@ -39,7 +42,10 @@ public class AppointmentService {
         appointment.setAppointmentTime(appointment.getAppointmentDate());
         slot.setIsAvailable(false);
         timeSlotRepository.save(slot);
-        return appointmentRepository.save(appointment);
+        Appointment saved = appointmentRepository.save(appointment);
+        emailService.sendBestEffort(saved.getPatient().getEmail(), "MediSync appointment confirmation",
+                "Your appointment is confirmed for " + saved.getAppointmentDate());
+        return saved;
     }
 
     public Optional<Appointment> getAppointmentById(Long id) {
@@ -78,8 +84,10 @@ public class AppointmentService {
         Optional<Appointment> appointment = appointmentRepository.findById(id);
         if (appointment.isPresent()) {
             Appointment a = appointment.get();
-            a.setAppointmentDate(appointmentDetails.getAppointmentDate());
-            a.setAppointmentTime(appointmentDetails.getAppointmentTime());
+            if (appointmentDetails.getAppointmentDate() != null &&
+                    !appointmentDetails.getAppointmentDate().equals(a.getAppointmentDate())) {
+                return rescheduleAppointment(id, appointmentDetails);
+            }
             a.setStatus(appointmentDetails.getStatus());
             a.setReason(appointmentDetails.getReason());
             a.setNotes(appointmentDetails.getNotes());
@@ -90,8 +98,10 @@ public class AppointmentService {
     }
 
     public boolean deleteAppointment(Long id) {
-        if (appointmentRepository.existsById(id)) {
-            appointmentRepository.deleteById(id);
+        Optional<Appointment> appointment = appointmentRepository.findById(id);
+        if (appointment.isPresent()) {
+            releaseSlot(appointment.get());
+            appointmentRepository.delete(appointment.get());
             return true;
         }
         return false;
@@ -145,7 +155,7 @@ public class AppointmentService {
     public List<Appointment> getUpcomingAppointments() {
         return appointmentRepository.findAll().stream()
                 .filter(appt -> appt.getStatus() != null && 
-                               (appt.getStatus().equals("PENDING") || appt.getStatus().equals("CONFIRMED")))
+                               (appt.getStatus().equals("SCHEDULED") || appt.getStatus().equals("CONFIRMED")))
                 .toList();
     }
 
@@ -153,8 +163,23 @@ public class AppointmentService {
         Optional<Appointment> appointment = appointmentRepository.findById(id);
         if (appointment.isPresent()) {
             Appointment a = appointment.get();
-            a.setAppointmentDate(appointmentDetails.getAppointmentDate());
-            a.setAppointmentTime(appointmentDetails.getAppointmentTime());
+            LocalDateTime newStart = appointmentDetails.getAppointmentDate();
+            if (newStart == null || !newStart.isAfter(LocalDateTime.now())) {
+                throw ValidationException.invalidAppointmentTime();
+            }
+            TimeSlot newSlot = timeSlotRepository.findByDoctorIdAndStartTime(a.getDoctor().getId(), newStart)
+                    .orElseThrow(ValidationException::slotNotAvailable);
+            if (!Boolean.TRUE.equals(newSlot.getIsAvailable()) ||
+                    appointmentRepository.existsByDoctorIdAndAppointmentDateAndStatusNot(
+                            a.getDoctor().getId(), newStart, "CANCELLED")) {
+                throw ValidationException.slotNotAvailable();
+            }
+            releaseSlot(a);
+            newSlot.setIsAvailable(false);
+            timeSlotRepository.save(newSlot);
+            a.setAppointmentDate(newStart);
+            a.setAppointmentTime(newStart);
+            a.setDurationMinutes((int) Duration.between(newSlot.getStartTime(), newSlot.getEndTime()).toMinutes());
             return appointmentRepository.save(a);
         }
         return null;

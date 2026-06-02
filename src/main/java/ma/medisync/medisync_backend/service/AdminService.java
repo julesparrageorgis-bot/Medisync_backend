@@ -3,6 +3,10 @@ package ma.medisync.medisync_backend.service;
 import lombok.RequiredArgsConstructor;
 import ma.medisync.medisync_backend.entity.Admin;
 import ma.medisync.medisync_backend.repository.AdminRepository;
+import ma.medisync.medisync_backend.repository.UserRepository;
+import ma.medisync.medisync_backend.entity.enums.UserRole;
+import ma.medisync.medisync_backend.util.PasswordUtil;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
@@ -14,8 +18,15 @@ import java.util.Optional;
 public class AdminService {
 
     private final AdminRepository adminRepository;
+    private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
     public Admin createAdmin(Admin admin) {
+        admin.getUser().setUserRole(UserRole.ADMIN);
+        admin.getUser().setIsActive(true);
+        PasswordUtil.validatePasswordStrength(admin.getUser().getPassword());
+        admin.getUser().setPassword(passwordEncoder.encode(admin.getUser().getPassword()));
+        userRepository.save(admin.getUser());
         return adminRepository.save(admin);
     }
 

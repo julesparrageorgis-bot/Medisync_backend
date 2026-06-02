@@ -1,6 +1,7 @@
 package ma.medisync.medisync_backend.config;
 
 import ma.medisync.medisync_backend.entity.User;
+import ma.medisync.medisync_backend.entity.enums.UserRole;
 import ma.medisync.medisync_backend.repository.UserRepository;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -29,9 +30,13 @@ public class TwoFactorAuthFilter extends OncePerRequestFilter {
         if (auth != null && auth.isAuthenticated() && !request.getRequestURI().startsWith("/api/auth/2fa")) {
             String email = auth.getName();
             User user = userRepository.findByEmail(email).orElse(null);
-            if (user != null && user.getTwoFactorEnabled() && !user.getTwoFactorVerified()) {
+            boolean mandatoryAdminSetup = user != null && user.getUserRole() == UserRole.ADMIN &&
+                    !Boolean.TRUE.equals(user.getTwoFactorEnabled());
+            boolean verificationRequired = user != null && Boolean.TRUE.equals(user.getTwoFactorEnabled()) &&
+                    !Boolean.TRUE.equals(user.getTwoFactorVerified());
+            if (mandatoryAdminSetup || verificationRequired) {
                 response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-                response.getWriter().write("2FA verification required");
+                response.getWriter().write("Admin 2FA setup or verification required");
                 return;
             }
         }

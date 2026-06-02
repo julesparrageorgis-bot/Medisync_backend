@@ -7,6 +7,7 @@ import ma.medisync.medisync_backend.config.TwoFactorAuthService;
 import ma.medisync.medisync_backend.dto.TwoFactorSetupResponse;
 import ma.medisync.medisync_backend.dto.TwoFactorVerifyRequest;
 import ma.medisync.medisync_backend.entity.User;
+import ma.medisync.medisync_backend.entity.enums.UserRole;
 import ma.medisync.medisync_backend.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -64,6 +65,9 @@ public class TwoFactorController {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         User user = userRepository.findByEmail(email).orElseThrow(() -> 
             new IllegalArgumentException("User not found"));
+        if (user.getUserRole() == UserRole.ADMIN) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("2FA is mandatory for admin accounts");
+        }
         user.setTwoFactorEnabled(false);
         user.setTwoFactorVerified(false);
         user.setTwoFactorSecret(null);

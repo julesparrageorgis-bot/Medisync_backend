@@ -2,6 +2,7 @@ package ma.medisync.medisync_backend.config;
 
 import lombok.RequiredArgsConstructor;
 import ma.medisync.medisync_backend.util.JwtAuthenticationFilter;
+import ma.medisync.medisync_backend.repository.UserRepository;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -33,6 +34,7 @@ public class SecurityConfig {
 
     private final UserDetailsService userDetailsService;
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final UserRepository userRepository;
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -76,6 +78,7 @@ public class SecurityConfig {
             )
             .authenticationProvider(authenticationProvider())
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+            .addFilterAfter(new TwoFactorAuthFilter(userRepository), JwtAuthenticationFilter.class)
             .headers(headers -> headers.frameOptions(frameOptions -> frameOptions.disable())); // For H2 console
 
         return http.build();

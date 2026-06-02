@@ -46,12 +46,17 @@ public class AuthController {
 
         String token = tokenProvider.generateToken(authentication);
         User user = userService.findByEmail(loginRequest.getEmail());
+        if (Boolean.TRUE.equals(user.getTwoFactorEnabled())) {
+            user.setTwoFactorVerified(false);
+            userService.save(user);
+        }
 
         return ResponseEntity.ok(LoginResponse.builder()
             .token(token)
             .userId(user.getId())
             .email(user.getEmail())
             .role(user.getUserRole().toString())
+            .twoFactorRequired(user.getUserRole() == UserRole.ADMIN || Boolean.TRUE.equals(user.getTwoFactorEnabled()))
             .build());
     }
 
@@ -115,6 +120,7 @@ public class AuthController {
             .userId(user.getId())
             .email(user.getEmail())
             .role(user.getUserRole().toString())
+            .twoFactorRequired(user.getUserRole() == UserRole.ADMIN || Boolean.TRUE.equals(user.getTwoFactorEnabled()))
             .build());
     }
 }

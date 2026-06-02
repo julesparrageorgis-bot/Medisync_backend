@@ -6,6 +6,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import ma.medisync.medisync_backend.entity.Patient;
 import ma.medisync.medisync_backend.service.PatientService;
+import ma.medisync.medisync_backend.service.SecurityService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -22,6 +23,7 @@ import java.util.Optional;
 public class PatientController {
 
     private final PatientService patientService;
+    private final SecurityService securityService;
 
     @PostMapping
     @PreAuthorize("hasAnyRole('PATIENT', 'ADMIN')")
@@ -43,6 +45,7 @@ public class PatientController {
     @PreAuthorize("hasAnyRole('PATIENT', 'DOCTOR', 'SECRETARY', 'ADMIN')")
     @Operation(summary = "Get patient by ID", description = "Retrieve a specific patient")
     public ResponseEntity<Patient> getPatientById(@PathVariable Long id) {
+        securityService.assertCanAccessPatientProfile(id);
         Optional<Patient> patient = patientService.getPatientById(id);
         return patient.map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
@@ -52,6 +55,7 @@ public class PatientController {
     @PreAuthorize("hasAnyRole('PATIENT', 'DOCTOR', 'SECRETARY', 'ADMIN')")
     @Operation(summary = "Get patient by user ID", description = "Retrieve patient information by user ID")
     public ResponseEntity<Patient> getPatientByUserId(@PathVariable Long userId) {
+        securityService.assertCanAccessPatientProfile(userId);
         Optional<Patient> patient = patientService.getPatientByUserId(userId);
         return patient.map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
@@ -61,6 +65,7 @@ public class PatientController {
     @PreAuthorize("hasAnyRole('PATIENT', 'ADMIN')")
     @Operation(summary = "Update patient", description = "Update patient information")
     public ResponseEntity<Patient> updatePatient(@PathVariable Long id, @RequestBody Patient patientDetails) {
+        securityService.assertCanAccessPatientProfile(id);
         Patient updatedPatient = patientService.updatePatient(id, patientDetails);
         if (updatedPatient != null) {
             return ResponseEntity.ok(updatedPatient);

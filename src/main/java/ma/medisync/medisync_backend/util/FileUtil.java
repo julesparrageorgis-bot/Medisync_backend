@@ -16,11 +16,11 @@ public class FileUtil {
     @Value("${file.upload.max-size:20971520}")
     private long maxFileSize;
     
-    @Value("${file.upload.allowed-types:pdf,jpg,jpeg,png,doc,docx,xls,xlsx}")
+    @Value("${file.upload.allowed-types:pdf,jpg,jpeg,png,dcm,dicom}")
     private String allowedTypes;
     
     private static final Set<String> DEFAULT_ALLOWED_TYPES = new HashSet<>(Arrays.asList(
-            "pdf", "jpg", "jpeg", "png", "doc", "docx", "xls", "xlsx", "txt", "csv"
+            "pdf", "jpg", "jpeg", "png", "dcm", "dicom"
     ));
     
     public void validateFile(String filename, long fileSize) {

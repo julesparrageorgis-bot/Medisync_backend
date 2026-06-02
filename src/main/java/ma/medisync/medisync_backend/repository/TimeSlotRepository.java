@@ -17,4 +17,6 @@ public interface TimeSlotRepository extends JpaRepository<TimeSlot, Long> {
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     Optional<TimeSlot> findByDoctorIdAndStartTime(Long doctorId, LocalDateTime startTime);
+    List<TimeSlot> findByDoctorIdAndStartTimeLessThanAndEndTimeGreaterThan(
+            Long doctorId, LocalDateTime endTime, LocalDateTime startTime);
 }

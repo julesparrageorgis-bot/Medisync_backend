@@ -26,6 +26,10 @@ public class Appointment {
     private Doctor doctor;
 
     @ManyToOne
+    @JoinColumn(name = "dependent_id")
+    private Dependent dependent;
+
+    @ManyToOne
     @JoinColumn(name = "consultation_room_id")
     private ConsultationRoom consultationRoom;
 
@@ -47,6 +51,22 @@ public class Appointment {
     @Column(nullable = false)
     @Builder.Default
     private Double consultationFee = 0.0;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private Integer durationMinutes = 30;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private Boolean emergency = false;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private Boolean reminder24hSent = false;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private Boolean reminder1hSent = false;
 
     @Column(columnDefinition = "TIMESTAMP")
     private LocalDateTime createdAt;

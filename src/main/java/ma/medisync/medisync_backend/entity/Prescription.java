@@ -2,6 +2,7 @@ package ma.medisync.medisync_backend.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -18,10 +19,12 @@ public class Prescription {
 
     @ManyToOne
     @JoinColumn(name = "patient_id", nullable = false)
+    @JsonIgnoreProperties({"password", "socialSecurityNumber", "allergies", "emergencyContact", "emergencyPhone"})
     private Patient patient;
 
     @ManyToOne
     @JoinColumn(name = "doctor_id", nullable = false)
+    @JsonIgnoreProperties({"password"})
     private Doctor doctor;
 
     @ManyToOne

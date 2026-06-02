@@ -13,4 +13,5 @@ public class LoginResponse {
     private Long userId;
     private String email;
     private String role;
+    private Boolean twoFactorRequired;
 }

@@ -4,8 +4,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
+import org.springframework.scheduling.annotation.Async;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
+@Slf4j
 public class EmailService {
     @Autowired
     private JavaMailSender mailSender;
@@ -16,5 +19,17 @@ public class EmailService {
         message.setSubject(subject);
         message.setText(text);
         mailSender.send(message);
+    }
+
+    @Async
+    public void sendBestEffort(String to, String subject, String text) {
+        if (to == null || to.isBlank()) {
+            return;
+        }
+        try {
+            sendSimpleEmail(to, subject, text);
+        } catch (RuntimeException ex) {
+            log.warn("Could not send email to {}: {}", to, ex.getMessage());
+        }
     }
 }

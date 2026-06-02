@@ -39,6 +39,9 @@ CREATE DATABASE IF NOT EXISTS medisync_db
 CREATE USER IF NOT EXISTS 'medisync'@'localhost'
   IDENTIFIED BY 'medisync_dev_password';
 
+ALTER USER 'medisync'@'localhost'
+  IDENTIFIED BY 'medisync_dev_password';
+
 GRANT ALL PRIVILEGES ON medisync_db.* TO 'medisync'@'localhost';
 FLUSH PRIVILEGES;
 ```
@@ -63,7 +66,9 @@ To select it explicitly:
 ./mvnw spring-boot:run -Dspring-boot.run.profiles=local
 ```
 
-Flyway creates the schema and local development accounts automatically on the first start.
+Flyway creates the schema, planning extensions, and local development accounts automatically
+on the first start. Existing databases are upgraded with versioned migrations without schema
+recreation.
 
 ## 4. Optional environment overrides
 

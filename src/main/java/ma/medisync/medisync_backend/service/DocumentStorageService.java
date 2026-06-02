@@ -8,27 +8,29 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.UUID;
+import ma.medisync.medisync_backend.util.FileUtil;
+import lombok.RequiredArgsConstructor;
 
 @Service
+@RequiredArgsConstructor
 public class DocumentStorageService {
     @Value("${file.upload-dir}")
     private String uploadDir;
+    private final FileUtil fileUtil;
 
     public String storeFile(MultipartFile file) throws IOException {
-        if (file.getSize() > 20 * 1024 * 1024) {
-            throw new IllegalArgumentException("File too large, max 20MB");
-        }
         String originalName = file.getOriginalFilename();
-        String extension = originalName.substring(originalName.lastIndexOf("."));
+        fileUtil.validateFile(originalName, file.getSize());
+        String extension = "." + fileUtil.getFileExtension(originalName).toLowerCase();
         String newFileName = UUID.randomUUID() + extension;
-        Path path = Paths.get(uploadDir, newFileName);
+        Path path = resolveSafePath(newFileName);
         Files.createDirectories(path.getParent());
         Files.write(path, file.getBytes());
         return newFileName;
     }
 
     public byte[] getFile(String fileName) throws IOException {
-        Path path = Paths.get(uploadDir, fileName);
+        Path path = resolveSafePath(fileName);
         if (!Files.exists(path)) {
             throw new IllegalArgumentException("File not found: " + fileName);
         }
@@ -36,9 +38,18 @@ public class DocumentStorageService {
     }
 
     public void deleteFile(String fileName) throws IOException {
-        Path path = Paths.get(uploadDir, fileName);
+        Path path = resolveSafePath(fileName);
         if (Files.exists(path)) {
             Files.delete(path);
         }
+    }
+
+    private Path resolveSafePath(String fileName) {
+        Path root = Paths.get(uploadDir).toAbsolutePath().normalize();
+        Path path = root.resolve(fileName).normalize();
+        if (!path.startsWith(root)) {
+            throw new IllegalArgumentException("Invalid file path");
+        }
+        return path;
     }
 }

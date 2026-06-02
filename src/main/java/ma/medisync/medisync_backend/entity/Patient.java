@@ -24,6 +24,7 @@ import java.util.List;
 public class Patient extends User {
 
     @Column(name = "social_security_number", unique = true, length = 50)
+    @JsonIgnore
     private String socialSecurityNumber;
 
     private LocalDate dateOfBirth;
@@ -32,10 +33,12 @@ public class Patient extends User {
     private Gender gender;
 
     @Column(length = 10)
+    @JsonIgnore
     private String bloodType;
 
     @Type(JsonType.class)
     @Column(columnDefinition = "json")
+    @JsonIgnore
     private List<String> allergies;
 
     @Column(length = 255)
@@ -48,9 +51,11 @@ public class Patient extends User {
     private String zipCode;
 
     @Column(length = 100)
+    @JsonIgnore
     private String emergencyContact;
 
     @Column(length = 20)
+    @JsonIgnore
     private String emergencyPhone;
 
     @ManyToOne(fetch = FetchType.LAZY)

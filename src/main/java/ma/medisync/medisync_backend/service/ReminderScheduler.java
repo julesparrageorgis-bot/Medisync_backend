@@ -17,9 +17,33 @@ public class ReminderScheduler {
 
     @Scheduled(cron = "0 0 * * * *") // every hour
     public void sendReminders() {
-        // TODO: Implement appointment reminders
-        // Find appointments scheduled for 24 hours from now
-        // Find appointments scheduled for 1 hour from now
-        // Send email reminders
+        LocalDateTime now = LocalDateTime.now();
+        sendWindow(now.plusHours(24), true);
+        sendWindow(now.plusHours(1), false);
+    }
+
+    private void sendWindow(LocalDateTime target, boolean twentyFourHours) {
+        List<Appointment> appointments = appointmentRepository.findByAppointmentDateBetween(
+                target.minusMinutes(30), target.plusMinutes(30));
+        for (Appointment appointment : appointments) {
+            if ("CANCELLED".equals(appointment.getStatus()) || "COMPLETED".equals(appointment.getStatus())) {
+                continue;
+            }
+            if (twentyFourHours && Boolean.TRUE.equals(appointment.getReminder24hSent())) {
+                continue;
+            }
+            if (!twentyFourHours && Boolean.TRUE.equals(appointment.getReminder1hSent())) {
+                continue;
+            }
+            String label = twentyFourHours ? "24 hours" : "1 hour";
+            emailService.sendBestEffort(appointment.getPatient().getEmail(), "MediSync appointment reminder",
+                    "Reminder: your appointment is in " + label + ", at " + appointment.getAppointmentDate());
+            if (twentyFourHours) {
+                appointment.setReminder24hSent(true);
+            } else {
+                appointment.setReminder1hSent(true);
+            }
+            appointmentRepository.save(appointment);
+        }
     }
 }

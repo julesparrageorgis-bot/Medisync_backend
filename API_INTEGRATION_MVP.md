@@ -1,4 +1,4 @@
-# MediSync Backend MVP Integration Guide
+# MediSync Backend Web Integration Guide
 
 ## Local startup
 
@@ -45,6 +45,9 @@ Use the returned token on protected requests:
 Authorization: Bearer <token>
 ```
 
+The login response includes `twoFactorRequired`. Admin accounts must complete
+`POST /api/auth/2fa/setup` and `POST /api/auth/2fa/verify` before using protected APIs.
+
 ### Refresh JWT
 
 `POST /api/auth/refresh-token`
@@ -59,6 +62,8 @@ Authorization: Bearer <token>
 | `GET` | `/api/time-slots/doctor/{doctorId}/available` | Authenticated users | List bookable slots |
 | `POST` | `/api/time-slots` | Doctor, admin | Create a slot |
 | `POST` | `/api/appointments` | Patient, secretary, admin | Book an available slot |
+| `POST` | `/api/appointments/emergency` | Secretary, admin | Book an emergency slot |
+| `POST` | `/api/appointments/dependents/{dependentId}` | Patient, secretary, admin | Book for a dependent |
 | `GET` | `/api/appointments` | Authenticated users | List allowed appointments |
 | `GET` | `/api/appointments/patient/{patientId}` | Authenticated users | List patient appointments |
 | `PUT` | `/api/appointments/id/{id}/cancel` | Patient, secretary, admin | Cancel booking |
@@ -86,7 +91,39 @@ Book a slot using the slot start time:
 ```
 
 Booking requires a future available slot and reserves it atomically. Cancelling releases
-the slot. Patients can only read or modify their own appointments.
+the slot. Rescheduling reserves the new slot and releases the old one. Slots accept only
+15, 30, or 60 minute durations and cannot overlap.
+
+## Additional web API groups
+
+| Base URL | Purpose |
+| --- | --- |
+| `/api/prescriptions` | Prescription CRUD and `/id/{id}/pdf` download |
+| `/api/medications` | Medication CRUD and `/search?query=` |
+| `/api/documents` | Patient-linked secure upload, list, ID-based download, and delete |
+| `/api/invoices` | Invoices, items, payments, performed acts, PDF export, and email |
+| `/api/operations/rooms` | Consultation rooms |
+| `/api/operations/equipment` | Equipment |
+| `/api/operations/tariffs` | Tariffs |
+| `/api/operations/report-templates` | Medical report templates |
+| `/api/operations/doctor-unavailability` | Doctor leave days and unavailable periods |
+| `/api/operations/dependents` | Patient dependents |
+| `/api/operations/issues` | Issue reports |
+| `/api/reviews` | Reviews and admin approval |
+| `/api/notifications` | Current-user notifications |
+| `/api/audit-logs` | Admin audit-log reads |
+| `/api/admin/dashboard` | Room occupancy, no-shows, revenue, unpaid invoices, doctor totals |
+| `/api/admin/reports` | Financial JSON, PDF, and XLSX exports |
+
+Medical document upload is multipart:
+
+```text
+POST /api/documents/upload
+patientId=<id>
+documentType=LAB_REPORT
+description=<optional text>
+file=<PDF, JPG, PNG, DCM, or DICOM file up to 20 MB>
+```
 
 ## Persistent local database
 
@@ -99,9 +136,10 @@ Use the temporary H2 profile only for isolated testing:
 ./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
 ```
 
-## Current MVP limits
+## Current limits
 
-- Appointment request and response DTO cleanup is still pending; the current payload uses
-  nested entity IDs.
-- Medical-record ownership hardening and document metadata integration remain pending.
+- Existing legacy CRUD controllers still accept some nested entity ID payloads. Sensitive
+  password, TOTP, recursive, social-security, allergy, blood-type, and emergency fields are
+  protected from JSON responses.
+- Financial reports are generated on demand; persisted monthly report snapshots are not yet stored.
 - Production deployment environment variables still need to be set before deployment.

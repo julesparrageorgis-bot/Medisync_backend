@@ -6,12 +6,12 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import ma.medisync.medisync_backend.entity.Appointment;
 import ma.medisync.medisync_backend.service.AppointmentService;
+import ma.medisync.medisync_backend.service.SecurityService;
+import ma.medisync.medisync_backend.entity.Dependent;
+import ma.medisync.medisync_backend.repository.DependentRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
@@ -26,24 +26,47 @@ import java.util.Optional;
 public class AppointmentController {
 
     private final AppointmentService appointmentService;
+    private final SecurityService securityService;
+    private final DependentRepository dependentRepository;
 
     @PostMapping
     @PreAuthorize("hasAnyRole('PATIENT', 'SECRETARY', 'ADMIN')")
     @Operation(summary = "Create appointment", description = "Create a new appointment")
     public ResponseEntity<Appointment> createAppointment(@RequestBody Appointment appointment) {
-        assertPatientCanAccess(appointment.getPatient() == null ? null : appointment.getPatient().getId());
+        if (appointment.getPatient() != null) {
+            securityService.assertCanAccessPatientProfile(appointment.getPatient().getId());
+        }
         Appointment createdAppointment = appointmentService.createAppointment(appointment);
         return new ResponseEntity<>(createdAppointment, HttpStatus.CREATED);
+    }
+
+    @PostMapping("/emergency")
+    @PreAuthorize("hasAnyRole('SECRETARY', 'ADMIN')")
+    public ResponseEntity<Appointment> createEmergencyAppointment(@RequestBody Appointment appointment) {
+        appointment.setEmergency(true);
+        return new ResponseEntity<>(appointmentService.createAppointment(appointment), HttpStatus.CREATED);
+    }
+
+    @PostMapping("/dependents/{dependentId}")
+    @PreAuthorize("hasAnyRole('PATIENT', 'SECRETARY', 'ADMIN')")
+    public ResponseEntity<Appointment> createDependentAppointment(@PathVariable Long dependentId,
+                                                                  @RequestBody Appointment appointment) {
+        Dependent dependent = dependentRepository.findById(dependentId)
+                .orElseThrow(() -> new ma.medisync.medisync_backend.exception.ResourceNotFoundException(
+                        "Dependent not found with id: " + dependentId));
+        securityService.assertCanAccessPatientProfile(dependent.getParentPatient().getId());
+        appointment.setPatient(dependent.getParentPatient());
+        appointment.setDependent(dependent);
+        return new ResponseEntity<>(appointmentService.createAppointment(appointment), HttpStatus.CREATED);
     }
 
     @GetMapping
     @PreAuthorize("hasAnyRole('PATIENT', 'DOCTOR', 'SECRETARY', 'ADMIN')")
     @Operation(summary = "Get all appointments", description = "Retrieve all appointments")
     public ResponseEntity<List<Appointment>> getAllAppointments() {
-        if (isPatient()) {
-            return ResponseEntity.ok(appointmentService.getAppointmentsByPatient(currentUserId()));
-        }
-        List<Appointment> appointments = appointmentService.getAllAppointments();
+        List<Appointment> appointments = appointmentService.getAllAppointments().stream()
+                .filter(securityService::canAccessAppointment)
+                .toList();
         return ResponseEntity.ok(appointments);
     }
 
@@ -52,7 +75,7 @@ public class AppointmentController {
     @Operation(summary = "Get appointment by ID", description = "Retrieve a specific appointment")
     public ResponseEntity<Appointment> getAppointmentById(@PathVariable Long id) {
         Optional<Appointment> appointment = appointmentService.getAppointmentById(id);
-        appointment.ifPresent(this::assertPatientCanAccess);
+        appointment.ifPresent(securityService::assertCanAccessAppointment);
         return appointment.map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
@@ -61,7 +84,7 @@ public class AppointmentController {
     @PreAuthorize("hasAnyRole('PATIENT', 'DOCTOR', 'SECRETARY', 'ADMIN')")
     @Operation(summary = "Get appointments by patient", description = "Retrieve all appointments for a patient")
     public ResponseEntity<List<Appointment>> getAppointmentsByPatient(@PathVariable Long patientId) {
-        assertPatientCanAccess(patientId);
+        securityService.assertCanAccessPatientProfile(patientId);
         List<Appointment> appointments = appointmentService.getAppointmentsByPatient(patientId);
         return ResponseEntity.ok(appointments);
     }
@@ -70,6 +93,7 @@ public class AppointmentController {
     @PreAuthorize("hasAnyRole('DOCTOR', 'SECRETARY', 'ADMIN')")
     @Operation(summary = "Get appointments by doctor", description = "Retrieve all appointments for a doctor")
     public ResponseEntity<List<Appointment>> getAppointmentsByDoctor(@PathVariable Long doctorId) {
+        securityService.assertDoctorSelf(doctorId);
         List<Appointment> appointments = appointmentService.getAppointmentsByDoctor(doctorId);
         return ResponseEntity.ok(appointments);
     }
@@ -79,11 +103,7 @@ public class AppointmentController {
     @Operation(summary = "Get appointments by status", description = "Filter appointments by status")
     public ResponseEntity<List<Appointment>> getAppointmentsByStatus(@PathVariable String status) {
         List<Appointment> appointments = appointmentService.getAppointmentsByStatus(status);
-        if (isPatient()) {
-            appointments = appointments.stream()
-                    .filter(appointment -> appointment.getPatient().getId().equals(currentUserId()))
-                    .toList();
-        }
+        appointments = appointments.stream().filter(securityService::canAccessAppointment).toList();
         return ResponseEntity.ok(appointments);
     }
 
@@ -92,11 +112,7 @@ public class AppointmentController {
     @Operation(summary = "Get upcoming appointments", description = "Retrieve upcoming appointments")
     public ResponseEntity<List<Appointment>> getUpcomingAppointments() {
         List<Appointment> appointments = appointmentService.getUpcomingAppointments();
-        if (isPatient()) {
-            appointments = appointments.stream()
-                    .filter(appointment -> appointment.getPatient().getId().equals(currentUserId()))
-                    .toList();
-        }
+        appointments = appointments.stream().filter(securityService::canAccessAppointment).toList();
         return ResponseEntity.ok(appointments);
     }
 
@@ -104,7 +120,7 @@ public class AppointmentController {
     @PreAuthorize("hasAnyRole('PATIENT', 'SECRETARY', 'ADMIN')")
     @Operation(summary = "Update appointment", description = "Update an existing appointment")
     public ResponseEntity<Appointment> updateAppointment(@PathVariable Long id, @RequestBody Appointment appointmentDetails) {
-        appointmentService.getAppointmentById(id).ifPresent(this::assertPatientCanAccess);
+        appointmentService.getAppointmentById(id).ifPresent(securityService::assertCanAccessAppointment);
         Appointment updatedAppointment = appointmentService.updateAppointment(id, appointmentDetails);
         if (updatedAppointment != null) {
             return ResponseEntity.ok(updatedAppointment);
@@ -124,7 +140,7 @@ public class AppointmentController {
     @PreAuthorize("hasAnyRole('PATIENT', 'SECRETARY', 'ADMIN')")
     @Operation(summary = "Cancel appointment", description = "Cancel an existing appointment")
     public ResponseEntity<Appointment> cancelAppointment(@PathVariable Long id) {
-        appointmentService.getAppointmentById(id).ifPresent(this::assertPatientCanAccess);
+        appointmentService.getAppointmentById(id).ifPresent(securityService::assertCanAccessAppointment);
         Appointment cancelledAppointment = appointmentService.cancelAppointment(id);
         if (cancelledAppointment != null) {
             return ResponseEntity.ok(cancelledAppointment);
@@ -147,7 +163,7 @@ public class AppointmentController {
     @PreAuthorize("hasAnyRole('PATIENT', 'SECRETARY', 'ADMIN')")
     @Operation(summary = "Reschedule appointment", description = "Reschedule an appointment to a different date/time")
     public ResponseEntity<Appointment> rescheduleAppointment(@PathVariable Long id, @RequestBody Appointment appointmentDetails) {
-        appointmentService.getAppointmentById(id).ifPresent(this::assertPatientCanAccess);
+        appointmentService.getAppointmentById(id).ifPresent(securityService::assertCanAccessAppointment);
         Appointment rescheduled = appointmentService.rescheduleAppointment(id, appointmentDetails);
         if (rescheduled != null) {
             return ResponseEntity.ok(rescheduled);
@@ -155,27 +171,4 @@ public class AppointmentController {
         return ResponseEntity.notFound().build();
     }
 
-    private void assertPatientCanAccess(Appointment appointment) {
-        assertPatientCanAccess(appointment.getPatient().getId());
-    }
-
-    private void assertPatientCanAccess(Long patientId) {
-        if (isPatient() && (patientId == null || !patientId.equals(currentUserId()))) {
-            throw new AccessDeniedException("Patients can only access their own appointments");
-        }
-    }
-
-    private boolean isPatient() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        return authentication != null && authentication.getAuthorities().stream()
-                .anyMatch(authority -> authority.getAuthority().equals("ROLE_PATIENT"));
-    }
-
-    private Long currentUserId() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication != null && authentication.getPrincipal() instanceof ma.medisync.medisync_backend.entity.User user) {
-            return user.getId();
-        }
-        throw new AccessDeniedException("Authenticated patient profile is required");
-    }
 }

@@ -9,4 +9,6 @@ import java.util.List;
 public interface ConsultationRoomRepository extends JpaRepository<ConsultationRoom, Long> {
     List<ConsultationRoom> findByOfficeId(Long officeId);
     List<ConsultationRoom> findByIsAvailableTrue();
+    long countByIsActiveTrue();
+    long countByIsActiveTrueAndIsAvailableTrue();
 }

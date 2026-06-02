@@ -7,11 +7,13 @@ import ma.medisync.medisync_backend.exception.ResourceNotFoundException;
 import ma.medisync.medisync_backend.exception.ValidationException;
 import ma.medisync.medisync_backend.repository.DoctorRepository;
 import ma.medisync.medisync_backend.repository.TimeSlotRepository;
+import ma.medisync.medisync_backend.repository.DoctorUnavailabilityRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.time.Duration;
 
 @Service
 @RequiredArgsConstructor
@@ -20,10 +22,23 @@ public class TimeSlotService {
 
     private final TimeSlotRepository timeSlotRepository;
     private final DoctorRepository doctorRepository;
+    private final DoctorUnavailabilityRepository unavailabilityRepository;
 
     public TimeSlot createTimeSlot(Long doctorId, LocalDateTime startTime, LocalDateTime endTime) {
         if (startTime == null || endTime == null || !startTime.isBefore(endTime)) {
             throw ValidationException.invalidDateRange();
+        }
+        long minutes = Duration.between(startTime, endTime).toMinutes();
+        if (minutes != 15 && minutes != 30 && minutes != 60) {
+            throw new ValidationException("Time slot duration must be 15, 30, or 60 minutes");
+        }
+        if (!timeSlotRepository.findByDoctorIdAndStartTimeLessThanAndEndTimeGreaterThan(
+                doctorId, endTime, startTime).isEmpty()) {
+            throw new ValidationException("Time slot overlaps an existing slot");
+        }
+        if (!unavailabilityRepository.findByDoctorIdAndStartTimeLessThanAndEndTimeGreaterThan(
+                doctorId, endTime, startTime).isEmpty()) {
+            throw new ValidationException("Doctor is unavailable during this period");
         }
         Doctor doctor = doctorRepository.findById(doctorId)
                 .orElseThrow(() -> ResourceNotFoundException.doctorNotFound(doctorId));

@@ -5,12 +5,15 @@ import ma.medisync.medisync_backend.entity.Appointment;
 import ma.medisync.medisync_backend.entity.Doctor;
 import ma.medisync.medisync_backend.entity.Patient;
 import ma.medisync.medisync_backend.entity.TimeSlot;
+import ma.medisync.medisync_backend.entity.User;
 import ma.medisync.medisync_backend.entity.enums.UserRole;
 import ma.medisync.medisync_backend.exception.ValidationException;
 import ma.medisync.medisync_backend.repository.DoctorRepository;
 import ma.medisync.medisync_backend.repository.PatientRepository;
 import ma.medisync.medisync_backend.repository.TimeSlotRepository;
+import ma.medisync.medisync_backend.repository.UserRepository;
 import ma.medisync.medisync_backend.service.AppointmentService;
+import ma.medisync.medisync_backend.service.TimeSlotService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -46,6 +49,10 @@ class CoreMvpIntegrationTests {
     private TimeSlotRepository timeSlotRepository;
     @Autowired
     private AppointmentService appointmentService;
+    @Autowired
+    private TimeSlotService timeSlotService;
+    @Autowired
+    private UserRepository userRepository;
 
     @Test
     void registrationLoginAndProtectedAccessWork() throws Exception {
@@ -92,6 +99,66 @@ class CoreMvpIntegrationTests {
 
         assertThrows(ValidationException.class,
                 () -> appointmentService.createAppointment(appointment(patient, doctor, start)));
+    }
+
+    @Test
+    void timeSlotsRejectUnsupportedDurationsAndOverlaps() {
+        Doctor doctor = createDoctor("slot-doctor@example.com");
+        LocalDateTime start = LocalDateTime.now().plusDays(3).withNano(0);
+
+        assertThrows(ValidationException.class,
+                () -> timeSlotService.createTimeSlot(doctor.getId(), start, start.plusMinutes(45)));
+
+        timeSlotService.createTimeSlot(doctor.getId(), start, start.plusMinutes(30));
+        assertThrows(ValidationException.class,
+                () -> timeSlotService.createTimeSlot(doctor.getId(), start.plusMinutes(15), start.plusMinutes(30)));
+    }
+
+    @Test
+    void patientCannotReadAnotherPatientProfile() throws Exception {
+        register("owner@example.com");
+        register("other@example.com");
+        Long otherId = userRepository.findByEmail("other@example.com").orElseThrow().getId();
+        String token = login("owner@example.com");
+
+        mockMvc.perform(get("/api/patients/id/" + otherId)
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void adminMustCompleteTwoFactorSetupBeforeUsingProtectedApis() throws Exception {
+        User admin = new User();
+        admin.setEmail("two-factor-admin@example.com");
+        admin.setPassword(passwordEncoder.encode("Admin123!"));
+        admin.setUserRole(UserRole.ADMIN);
+        admin.setIsActive(true);
+        userRepository.save(admin);
+
+        String token = login("two-factor-admin@example.com");
+        mockMvc.perform(get("/api/admin/dashboard")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isForbidden());
+    }
+
+    private void register(String email) throws Exception {
+        mockMvc.perform(post("/api/auth/register")
+                        .contentType("application/json")
+                        .content("""
+                                {"email":"%s","password":"Password1!","firstName":"Test","lastName":"Patient"}
+                                """.formatted(email)))
+                .andExpect(status().isCreated());
+    }
+
+    private String login(String email) throws Exception {
+        String response = mockMvc.perform(post("/api/auth/login")
+                        .contentType("application/json")
+                        .content("""
+                                {"email":"%s","password":"%s"}
+                                """.formatted(email, email.startsWith("two-factor") ? "Admin123!" : "Password1!")))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        return objectMapper.readTree(response).get("token").asText();
     }
 
     private Patient createPatient(String email) {
