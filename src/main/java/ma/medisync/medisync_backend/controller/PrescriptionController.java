@@ -8,6 +8,8 @@ import ma.medisync.medisync_backend.entity.Prescription;
 import ma.medisync.medisync_backend.exception.ResourceNotFoundException;
 import ma.medisync.medisync_backend.service.PrescriptionService;
 import ma.medisync.medisync_backend.service.SecurityService;
+import ma.medisync.medisync_backend.service.ApiResponseMapper;
+import ma.medisync.medisync_backend.dto.ApiResponses.PrescriptionResponse;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -24,36 +26,38 @@ public class PrescriptionController {
 
     private final PrescriptionService prescriptionService;
     private final SecurityService securityService;
+    private final ApiResponseMapper mapper;
 
     @PostMapping
     @PreAuthorize("hasAnyRole('DOCTOR', 'ADMIN')")
-    public ResponseEntity<Prescription> create(@RequestBody Prescription prescription) {
+    public ResponseEntity<PrescriptionResponse> create(@RequestBody Prescription prescription) {
         securityService.assertCanAccessMedicalData(prescription.getPatient().getId());
         securityService.assertDoctorSelf(prescription.getDoctor().getId());
-        return ResponseEntity.status(201).body(prescriptionService.createPrescription(prescription));
+        return ResponseEntity.status(201).body(mapper.prescription(prescriptionService.createPrescription(prescription)));
     }
 
     @GetMapping("/id/{id}")
     @PreAuthorize("hasAnyRole('PATIENT', 'DOCTOR', 'ADMIN')")
-    public ResponseEntity<Prescription> byId(@PathVariable Long id) {
+    public ResponseEntity<PrescriptionResponse> byId(@PathVariable Long id) {
         Prescription prescription = prescription(id);
         securityService.assertCanAccessMedicalData(prescription.getPatient().getId());
-        return ResponseEntity.ok(prescription);
+        return ResponseEntity.ok(mapper.prescription(prescription));
     }
 
     @GetMapping("/patient/{patientId}")
     @PreAuthorize("hasAnyRole('PATIENT', 'DOCTOR', 'ADMIN')")
-    public ResponseEntity<List<Prescription>> byPatient(@PathVariable Long patientId) {
+    public ResponseEntity<List<PrescriptionResponse>> byPatient(@PathVariable Long patientId) {
         securityService.assertCanAccessMedicalData(patientId);
-        return ResponseEntity.ok(prescriptionService.getPatientPrescriptions(patientId));
+        return ResponseEntity.ok(prescriptionService.getPatientPrescriptions(patientId).stream()
+                .map(mapper::prescription).toList());
     }
 
     @PutMapping("/id/{id}")
     @PreAuthorize("hasAnyRole('DOCTOR', 'ADMIN')")
-    public ResponseEntity<Prescription> update(@PathVariable Long id, @RequestBody Prescription details) {
+    public ResponseEntity<PrescriptionResponse> update(@PathVariable Long id, @RequestBody Prescription details) {
         Prescription existing = prescription(id);
         securityService.assertCanAccessMedicalData(existing.getPatient().getId());
-        return ResponseEntity.ok(prescriptionService.updatePrescription(id, details));
+        return ResponseEntity.ok(mapper.prescription(prescriptionService.updatePrescription(id, details)));
     }
 
     @DeleteMapping("/id/{id}")

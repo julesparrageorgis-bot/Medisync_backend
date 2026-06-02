@@ -66,9 +66,9 @@ To select it explicitly:
 ./mvnw spring-boot:run -Dspring-boot.run.profiles=local
 ```
 
-Flyway creates the schema, planning extensions, and local development accounts automatically
-on the first start. Existing databases are upgraded with versioned migrations without schema
-recreation.
+Flyway creates the schema, planning extensions, persisted monthly financial reports, and local
+development accounts automatically on the first start. Existing databases are upgraded with
+versioned migrations without schema recreation.
 
 ## 4. Optional environment overrides
 
@@ -127,6 +127,10 @@ ORDER BY installed_rank;
 SELECT id, email, user_role
 FROM users
 ORDER BY id;
+
+SELECT report_month, total_revenue, generated_at
+FROM monthly_financial_reports
+ORDER BY report_month DESC;
 ```
 
 ## 7. Fast automated tests

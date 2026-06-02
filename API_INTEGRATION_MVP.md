@@ -114,6 +114,7 @@ the slot. Rescheduling reserves the new slot and releases the old one. Slots acc
 | `/api/audit-logs` | Admin audit-log reads |
 | `/api/admin/dashboard` | Room occupancy, no-shows, revenue, unpaid invoices, doctor totals |
 | `/api/admin/reports` | Financial JSON, PDF, and XLSX exports |
+| `/api/admin/reports/monthly` | Persisted monthly financial snapshots and stored exports |
 
 Medical document upload is multipart:
 
@@ -138,8 +139,12 @@ Use the temporary H2 profile only for isolated testing:
 
 ## Current limits
 
-- Existing legacy CRUD controllers still accept some nested entity ID payloads. Sensitive
-  password, TOTP, recursive, social-security, allergy, blood-type, and emergency fields are
-  protected from JSON responses.
-- Financial reports are generated on demand; persisted monthly report snapshots are not yet stored.
+- Web-facing responses use dedicated DTOs for patients, doctors, appointments, medical records,
+  prescriptions, documents, invoices, notifications, reviews, staff, audit logs, and operational
+  resources, including offices and medications. Existing legacy write endpoints still accept some
+  nested entity ID payloads for frontend compatibility.
+- Monthly financial snapshots are stored automatically on the first day of each month. Admins can
+  list them with `GET /api/admin/reports/monthly`, create one with
+  `POST /api/admin/reports/monthly/generate?month=2026-06`, and download stored PDF or XLSX exports
+  from `/api/admin/reports/monthly/{id}.pdf` and `/api/admin/reports/monthly/{id}.xlsx`.
 - Production deployment environment variables still need to be set before deployment.

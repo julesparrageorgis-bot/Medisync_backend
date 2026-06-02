@@ -5,6 +5,8 @@ import ma.medisync.medisync_backend.entity.*;
 import ma.medisync.medisync_backend.repository.*;
 import ma.medisync.medisync_backend.service.ConsultationRoomService;
 import ma.medisync.medisync_backend.service.SecurityService;
+import ma.medisync.medisync_backend.service.ApiResponseMapper;
+import ma.medisync.medisync_backend.dto.ApiResponses.*;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -25,91 +27,103 @@ public class OperationsController {
     private final DependentRepository dependentRepository;
     private final DoctorUnavailabilityRepository unavailabilityRepository;
     private final SecurityService securityService;
+    private final ApiResponseMapper mapper;
 
     @GetMapping("/rooms")
     @PreAuthorize("hasAnyRole('DOCTOR', 'SECRETARY', 'ADMIN')")
-    public List<ConsultationRoom> rooms() { return roomService.getAllRooms(); }
+    public List<ConsultationRoomResponse> rooms() {
+        return roomService.getAllRooms().stream().map(mapper::room).toList();
+    }
 
     @PostMapping("/rooms")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<ConsultationRoom> createRoom(@RequestBody ConsultationRoom room) {
-        return ResponseEntity.status(201).body(roomService.createRoom(room));
+    public ResponseEntity<ConsultationRoomResponse> createRoom(@RequestBody ConsultationRoom room) {
+        return ResponseEntity.status(201).body(mapper.room(roomService.createRoom(room)));
     }
 
     @GetMapping("/equipment")
     @PreAuthorize("hasAnyRole('DOCTOR', 'SECRETARY', 'ADMIN')")
-    public List<Equipment> equipment() { return equipmentRepository.findAll(); }
+    public List<EquipmentResponse> equipment() {
+        return equipmentRepository.findAll().stream().map(mapper::equipment).toList();
+    }
 
     @PostMapping("/equipment")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<Equipment> createEquipment(@RequestBody Equipment equipment) {
-        return ResponseEntity.status(201).body(equipmentRepository.save(equipment));
+    public ResponseEntity<EquipmentResponse> createEquipment(@RequestBody Equipment equipment) {
+        return ResponseEntity.status(201).body(mapper.equipment(equipmentRepository.save(equipment)));
     }
 
     @GetMapping("/tariffs")
     @PreAuthorize("hasAnyRole('PATIENT', 'DOCTOR', 'SECRETARY', 'ADMIN')")
-    public List<Tariff> tariffs() { return tariffRepository.findAll(); }
+    public List<TariffResponse> tariffs() {
+        return tariffRepository.findAll().stream().map(mapper::tariff).toList();
+    }
 
     @PostMapping("/tariffs")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<Tariff> createTariff(@RequestBody Tariff tariff) {
-        return ResponseEntity.status(201).body(tariffRepository.save(tariff));
+    public ResponseEntity<TariffResponse> createTariff(@RequestBody Tariff tariff) {
+        return ResponseEntity.status(201).body(mapper.tariff(tariffRepository.save(tariff)));
     }
 
     @GetMapping("/report-templates")
     @PreAuthorize("hasAnyRole('DOCTOR', 'ADMIN')")
-    public List<MedicalReportTemplate> templates() { return templateRepository.findAll(); }
+    public List<MedicalReportTemplateResponse> templates() {
+        return templateRepository.findAll().stream().map(mapper::template).toList();
+    }
 
     @PostMapping("/report-templates")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<MedicalReportTemplate> createTemplate(@RequestBody MedicalReportTemplate template) {
-        return ResponseEntity.status(201).body(templateRepository.save(template));
+    public ResponseEntity<MedicalReportTemplateResponse> createTemplate(@RequestBody MedicalReportTemplate template) {
+        return ResponseEntity.status(201).body(mapper.template(templateRepository.save(template)));
     }
 
     @GetMapping("/issues")
     @PreAuthorize("hasRole('ADMIN')")
-    public List<IssueReport> issues() { return issueRepository.findAll(); }
+    public List<IssueReportResponse> issues() {
+        return issueRepository.findAll().stream().map(mapper::issue).toList();
+    }
 
     @PostMapping("/issues")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<IssueReport> reportIssue(@RequestBody IssueReport issue) {
+    public ResponseEntity<IssueReportResponse> reportIssue(@RequestBody IssueReport issue) {
         issue.setReporter(securityService.currentUser());
         issue.setStatus("OPEN");
         issue.setCreatedAt(LocalDateTime.now());
-        return ResponseEntity.status(201).body(issueRepository.save(issue));
+        return ResponseEntity.status(201).body(mapper.issue(issueRepository.save(issue)));
     }
 
     @GetMapping("/dependents")
     @PreAuthorize("hasRole('PATIENT')")
-    public List<Dependent> dependents() {
-        return dependentRepository.findByParentPatientId(securityService.currentUser().getId());
+    public List<DependentResponse> dependents() {
+        return dependentRepository.findByParentPatientId(securityService.currentUser().getId()).stream()
+                .map(mapper::dependent).toList();
     }
 
     @PostMapping("/dependents")
     @PreAuthorize("hasRole('PATIENT')")
-    public ResponseEntity<Dependent> createDependent(@RequestBody Dependent dependent) {
+    public ResponseEntity<DependentResponse> createDependent(@RequestBody Dependent dependent) {
         Patient parent = new Patient();
         parent.setId(securityService.currentUser().getId());
         dependent.setParentPatient(parent);
-        return ResponseEntity.status(201).body(dependentRepository.save(dependent));
+        return ResponseEntity.status(201).body(mapper.dependent(dependentRepository.save(dependent)));
     }
 
     @GetMapping("/doctor-unavailability/{doctorId}")
     @PreAuthorize("hasAnyRole('DOCTOR', 'SECRETARY', 'ADMIN')")
-    public List<DoctorUnavailability> unavailability(@PathVariable Long doctorId) {
+    public List<DoctorUnavailabilityResponse> unavailability(@PathVariable Long doctorId) {
         securityService.assertDoctorSelf(doctorId);
-        return unavailabilityRepository.findByDoctorId(doctorId);
+        return unavailabilityRepository.findByDoctorId(doctorId).stream().map(mapper::unavailability).toList();
     }
 
     @PostMapping("/doctor-unavailability")
     @PreAuthorize("hasAnyRole('DOCTOR', 'ADMIN')")
-    public ResponseEntity<DoctorUnavailability> createUnavailability(@RequestBody DoctorUnavailability value) {
+    public ResponseEntity<DoctorUnavailabilityResponse> createUnavailability(@RequestBody DoctorUnavailability value) {
         securityService.assertDoctorSelf(value.getDoctor().getId());
         if (value.getStartTime() == null || value.getEndTime() == null ||
                 !value.getStartTime().isBefore(value.getEndTime())) {
             throw new ma.medisync.medisync_backend.exception.ValidationException("Invalid unavailability period");
         }
-        return ResponseEntity.status(201).body(unavailabilityRepository.save(value));
+        return ResponseEntity.status(201).body(mapper.unavailability(unavailabilityRepository.save(value)));
     }
 
     @DeleteMapping("/doctor-unavailability/{id}")

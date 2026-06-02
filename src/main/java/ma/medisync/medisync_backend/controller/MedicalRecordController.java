@@ -7,6 +7,8 @@ import lombok.RequiredArgsConstructor;
 import ma.medisync.medisync_backend.entity.MedicalRecord;
 import ma.medisync.medisync_backend.service.MedicalRecordService;
 import ma.medisync.medisync_backend.service.SecurityService;
+import ma.medisync.medisync_backend.service.ApiResponseMapper;
+import ma.medisync.medisync_backend.dto.ApiResponses.MedicalRecordResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -25,74 +27,75 @@ public class MedicalRecordController {
 
     private final MedicalRecordService medicalRecordService;
     private final SecurityService securityService;
+    private final ApiResponseMapper mapper;
 
     @PostMapping
     @PreAuthorize("hasAnyRole('DOCTOR', 'ADMIN')")
     @Operation(summary = "Create medical record", description = "Create a new medical record")
-    public ResponseEntity<MedicalRecord> createRecord(@RequestBody MedicalRecord record) {
+    public ResponseEntity<MedicalRecordResponse> createRecord(@RequestBody MedicalRecord record) {
         securityService.assertCanAccessMedicalData(record.getPatient().getId());
         securityService.assertDoctorSelf(record.getDoctor().getId());
         MedicalRecord createdRecord = medicalRecordService.createRecord(record);
-        return new ResponseEntity<>(createdRecord, HttpStatus.CREATED);
+        return new ResponseEntity<>(mapper.record(createdRecord), HttpStatus.CREATED);
     }
 
     @GetMapping("/id/{id}")
     @PreAuthorize("hasAnyRole('PATIENT', 'DOCTOR', 'ADMIN')")
     @Operation(summary = "Get medical record by ID", description = "Retrieve a specific medical record")
-    public ResponseEntity<MedicalRecord> getRecordById(@PathVariable Long id) {
+    public ResponseEntity<MedicalRecordResponse> getRecordById(@PathVariable Long id) {
         Optional<MedicalRecord> record = medicalRecordService.getRecordById(id);
         record.ifPresent(value -> securityService.assertCanAccessMedicalData(value.getPatient().getId()));
-        return record.map(ResponseEntity::ok)
+        return record.map(mapper::record).map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     @GetMapping
     @PreAuthorize("hasAnyRole('PATIENT', 'DOCTOR', 'ADMIN')")
     @Operation(summary = "Get all medical records", description = "Retrieve all medical records")
-    public ResponseEntity<List<MedicalRecord>> getAllRecords() {
+    public ResponseEntity<List<MedicalRecordResponse>> getAllRecords() {
         List<MedicalRecord> records = medicalRecordService.getAllRecords().stream()
                 .filter(record -> canAccessMedicalData(record.getPatient().getId()))
                 .toList();
-        return ResponseEntity.ok(records);
+        return ResponseEntity.ok(records.stream().map(mapper::record).toList());
     }
 
     @GetMapping("/patient/{patientId}")
     @PreAuthorize("hasAnyRole('PATIENT', 'DOCTOR', 'ADMIN')")
     @Operation(summary = "Get patient medical records", description = "Retrieve all medical records for a patient")
-    public ResponseEntity<List<MedicalRecord>> getPatientRecords(@PathVariable Long patientId) {
+    public ResponseEntity<List<MedicalRecordResponse>> getPatientRecords(@PathVariable Long patientId) {
         securityService.assertCanAccessMedicalData(patientId);
         List<MedicalRecord> records = medicalRecordService.getPatientRecords(patientId);
-        return ResponseEntity.ok(records);
+        return ResponseEntity.ok(records.stream().map(mapper::record).toList());
     }
 
     @GetMapping("/doctor/{doctorId}")
     @PreAuthorize("hasAnyRole('DOCTOR', 'ADMIN')")
     @Operation(summary = "Get doctor medical records", description = "Retrieve all medical records created by a doctor")
-    public ResponseEntity<List<MedicalRecord>> getDoctorRecords(@PathVariable Long doctorId) {
+    public ResponseEntity<List<MedicalRecordResponse>> getDoctorRecords(@PathVariable Long doctorId) {
         securityService.assertDoctorSelf(doctorId);
         List<MedicalRecord> records = medicalRecordService.getDoctorRecords(doctorId);
-        return ResponseEntity.ok(records);
+        return ResponseEntity.ok(records.stream().map(mapper::record).toList());
     }
 
     @GetMapping("/type/{recordType}")
     @PreAuthorize("hasAnyRole('PATIENT', 'DOCTOR', 'ADMIN')")
     @Operation(summary = "Get records by type", description = "Filter medical records by type")
-    public ResponseEntity<List<MedicalRecord>> getRecordsByType(@PathVariable String recordType) {
+    public ResponseEntity<List<MedicalRecordResponse>> getRecordsByType(@PathVariable String recordType) {
         List<MedicalRecord> records = medicalRecordService.getRecordsByType(recordType).stream()
                 .filter(record -> canAccessMedicalData(record.getPatient().getId()))
                 .toList();
-        return ResponseEntity.ok(records);
+        return ResponseEntity.ok(records.stream().map(mapper::record).toList());
     }
 
     @PutMapping("/id/{id}")
     @PreAuthorize("hasAnyRole('DOCTOR', 'ADMIN')")
     @Operation(summary = "Update medical record", description = "Update an existing medical record")
-    public ResponseEntity<MedicalRecord> updateRecord(@PathVariable Long id, @RequestBody MedicalRecord recordDetails) {
+    public ResponseEntity<MedicalRecordResponse> updateRecord(@PathVariable Long id, @RequestBody MedicalRecord recordDetails) {
         medicalRecordService.getRecordById(id)
                 .ifPresent(record -> securityService.assertCanAccessMedicalData(record.getPatient().getId()));
         MedicalRecord updatedRecord = medicalRecordService.updateRecord(id, recordDetails);
         if (updatedRecord != null) {
-            return ResponseEntity.ok(updatedRecord);
+            return ResponseEntity.ok(mapper.record(updatedRecord));
         }
         return ResponseEntity.notFound().build();
     }

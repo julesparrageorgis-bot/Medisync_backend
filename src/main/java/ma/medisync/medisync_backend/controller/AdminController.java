@@ -6,6 +6,8 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import ma.medisync.medisync_backend.entity.Admin;
 import ma.medisync.medisync_backend.service.AdminService;
+import ma.medisync.medisync_backend.service.ApiResponseMapper;
+import ma.medisync.medisync_backend.dto.ApiResponses.AdminResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -23,35 +25,36 @@ import java.util.Optional;
 public class AdminController {
 
     private final AdminService adminService;
+    private final ApiResponseMapper mapper;
 
     @PostMapping
     @Operation(summary = "Create admin", description = "Create a new admin user")
-    public ResponseEntity<Admin> createAdmin(@RequestBody Admin admin) {
+    public ResponseEntity<AdminResponse> createAdmin(@RequestBody Admin admin) {
         Admin createdAdmin = adminService.createAdmin(admin);
-        return new ResponseEntity<>(createdAdmin, HttpStatus.CREATED);
+        return new ResponseEntity<>(mapper.admin(createdAdmin), HttpStatus.CREATED);
     }
 
     @GetMapping
     @Operation(summary = "Get all admins", description = "Retrieve list of all admin users")
-    public ResponseEntity<List<Admin>> getAllAdmins() {
+    public ResponseEntity<List<AdminResponse>> getAllAdmins() {
         List<Admin> admins = adminService.getAllAdmins();
-        return ResponseEntity.ok(admins);
+        return ResponseEntity.ok(admins.stream().map(mapper::admin).toList());
     }
 
     @GetMapping("/id/{id}")
     @Operation(summary = "Get admin by ID", description = "Retrieve a specific admin by ID")
-    public ResponseEntity<Admin> getAdminById(@PathVariable Long id) {
+    public ResponseEntity<AdminResponse> getAdminById(@PathVariable Long id) {
         Optional<Admin> admin = adminService.getAdminById(id);
-        return admin.map(ResponseEntity::ok)
+        return admin.map(mapper::admin).map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     @PutMapping("/id/{id}")
     @Operation(summary = "Update admin", description = "Update an existing admin")
-    public ResponseEntity<Admin> updateAdmin(@PathVariable Long id, @RequestBody Admin adminDetails) {
+    public ResponseEntity<AdminResponse> updateAdmin(@PathVariable Long id, @RequestBody Admin adminDetails) {
         Admin updatedAdmin = adminService.updateAdmin(id, adminDetails);
         if (updatedAdmin != null) {
-            return ResponseEntity.ok(updatedAdmin);
+            return ResponseEntity.ok(mapper.admin(updatedAdmin));
         }
         return ResponseEntity.notFound().build();
     }

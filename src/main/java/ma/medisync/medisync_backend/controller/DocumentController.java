@@ -8,6 +8,8 @@ import ma.medisync.medisync_backend.entity.MedicalDocument;
 import ma.medisync.medisync_backend.entity.Patient;
 import ma.medisync.medisync_backend.service.MedicalDocumentService;
 import ma.medisync.medisync_backend.service.SecurityService;
+import ma.medisync.medisync_backend.service.ApiResponseMapper;
+import ma.medisync.medisync_backend.dto.ApiResponses.MedicalDocumentResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -24,11 +26,12 @@ public class DocumentController {
     private final DocumentStorageService storageService;
     private final MedicalDocumentService documentService;
     private final SecurityService securityService;
+    private final ApiResponseMapper mapper;
 
     @PostMapping("/upload")
     @PreAuthorize("hasAnyRole('PATIENT', 'DOCTOR', 'SECRETARY', 'ADMIN')")
     @Operation(summary = "Upload a document", description = "Upload a file to storage")
-    public ResponseEntity<MedicalDocument> upload(@RequestParam("patientId") Long patientId,
+    public ResponseEntity<MedicalDocumentResponse> upload(@RequestParam("patientId") Long patientId,
                                                    @RequestParam("documentType") String documentType,
                                                    @RequestParam(value = "description", required = false) String description,
                                                    @RequestParam("file") MultipartFile file) throws Exception {
@@ -44,7 +47,7 @@ public class DocumentController {
                 .description(description)
                 .uploadedBy(securityService.currentUser())
                 .build();
-        return new ResponseEntity<>(documentService.uploadDocument(document), HttpStatus.CREATED);
+        return new ResponseEntity<>(mapper.document(documentService.uploadDocument(document)), HttpStatus.CREATED);
     }
 
     @GetMapping("/download/{id}")
@@ -62,9 +65,9 @@ public class DocumentController {
 
     @GetMapping("/patient/{patientId}")
     @PreAuthorize("hasAnyRole('PATIENT', 'DOCTOR', 'ADMIN')")
-    public ResponseEntity<java.util.List<MedicalDocument>> patientDocuments(@PathVariable Long patientId) {
+    public ResponseEntity<java.util.List<MedicalDocumentResponse>> patientDocuments(@PathVariable Long patientId) {
         securityService.assertCanAccessMedicalData(patientId);
-        return ResponseEntity.ok(documentService.getPatientDocuments(patientId));
+        return ResponseEntity.ok(documentService.getPatientDocuments(patientId).stream().map(mapper::document).toList());
     }
 
     @DeleteMapping("/{id}")

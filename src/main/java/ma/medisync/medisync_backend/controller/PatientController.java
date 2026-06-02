@@ -7,6 +7,8 @@ import lombok.RequiredArgsConstructor;
 import ma.medisync.medisync_backend.entity.Patient;
 import ma.medisync.medisync_backend.service.PatientService;
 import ma.medisync.medisync_backend.service.SecurityService;
+import ma.medisync.medisync_backend.service.ApiResponseMapper;
+import ma.medisync.medisync_backend.dto.ApiResponses.PatientResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -24,51 +26,52 @@ public class PatientController {
 
     private final PatientService patientService;
     private final SecurityService securityService;
+    private final ApiResponseMapper mapper;
 
     @PostMapping
     @PreAuthorize("hasAnyRole('PATIENT', 'ADMIN')")
     @Operation(summary = "Create patient", description = "Create a new patient profile")
-    public ResponseEntity<Patient> createPatient(@RequestBody Patient patient) {
+    public ResponseEntity<PatientResponse> createPatient(@RequestBody Patient patient) {
         Patient createdPatient = patientService.createPatient(patient);
-        return new ResponseEntity<>(createdPatient, HttpStatus.CREATED);
+        return new ResponseEntity<>(mapper.patient(createdPatient), HttpStatus.CREATED);
     }
 
     @GetMapping
     @PreAuthorize("hasAnyRole('DOCTOR', 'SECRETARY', 'ADMIN')")
     @Operation(summary = "Get all patients", description = "Retrieve list of all patients")
-    public ResponseEntity<List<Patient>> getAllPatients() {
+    public ResponseEntity<List<PatientResponse>> getAllPatients() {
         List<Patient> patients = patientService.getAllPatients();
-        return ResponseEntity.ok(patients);
+        return ResponseEntity.ok(patients.stream().map(mapper::patient).toList());
     }
 
     @GetMapping("/id/{id}")
     @PreAuthorize("hasAnyRole('PATIENT', 'DOCTOR', 'SECRETARY', 'ADMIN')")
     @Operation(summary = "Get patient by ID", description = "Retrieve a specific patient")
-    public ResponseEntity<Patient> getPatientById(@PathVariable Long id) {
+    public ResponseEntity<PatientResponse> getPatientById(@PathVariable Long id) {
         securityService.assertCanAccessPatientProfile(id);
         Optional<Patient> patient = patientService.getPatientById(id);
-        return patient.map(ResponseEntity::ok)
+        return patient.map(mapper::patient).map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     @GetMapping("/user/{userId}")
     @PreAuthorize("hasAnyRole('PATIENT', 'DOCTOR', 'SECRETARY', 'ADMIN')")
     @Operation(summary = "Get patient by user ID", description = "Retrieve patient information by user ID")
-    public ResponseEntity<Patient> getPatientByUserId(@PathVariable Long userId) {
+    public ResponseEntity<PatientResponse> getPatientByUserId(@PathVariable Long userId) {
         securityService.assertCanAccessPatientProfile(userId);
         Optional<Patient> patient = patientService.getPatientByUserId(userId);
-        return patient.map(ResponseEntity::ok)
+        return patient.map(mapper::patient).map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     @PutMapping("/id/{id}")
     @PreAuthorize("hasAnyRole('PATIENT', 'ADMIN')")
     @Operation(summary = "Update patient", description = "Update patient information")
-    public ResponseEntity<Patient> updatePatient(@PathVariable Long id, @RequestBody Patient patientDetails) {
+    public ResponseEntity<PatientResponse> updatePatient(@PathVariable Long id, @RequestBody Patient patientDetails) {
         securityService.assertCanAccessPatientProfile(id);
         Patient updatedPatient = patientService.updatePatient(id, patientDetails);
         if (updatedPatient != null) {
-            return ResponseEntity.ok(updatedPatient);
+            return ResponseEntity.ok(mapper.patient(updatedPatient));
         }
         return ResponseEntity.notFound().build();
     }

@@ -15,6 +15,8 @@ import ma.medisync.medisync_backend.repository.PerformedActRepository;
 import ma.medisync.medisync_backend.service.EmailService;
 import ma.medisync.medisync_backend.service.InvoiceService;
 import ma.medisync.medisync_backend.service.SecurityService;
+import ma.medisync.medisync_backend.service.ApiResponseMapper;
+import ma.medisync.medisync_backend.dto.ApiResponses.*;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -36,69 +38,71 @@ public class BillingController {
     private final PerformedActRepository actRepository;
     private final SecurityService securityService;
     private final EmailService emailService;
+    private final ApiResponseMapper mapper;
 
     @PostMapping
     @PreAuthorize("hasAnyRole('SECRETARY', 'ADMIN')")
-    public ResponseEntity<Invoice> create(@RequestBody Invoice invoice) {
-        return ResponseEntity.status(201).body(invoiceService.createInvoice(invoice));
+    public ResponseEntity<InvoiceResponse> create(@RequestBody Invoice invoice) {
+        return ResponseEntity.status(201).body(mapper.invoice(invoiceService.createInvoice(invoice)));
     }
 
     @GetMapping
     @PreAuthorize("hasAnyRole('SECRETARY', 'ADMIN')")
-    public List<Invoice> all() {
-        return invoiceService.getAllInvoices();
+    public List<InvoiceResponse> all() {
+        return invoiceService.getAllInvoices().stream().map(mapper::invoice).toList();
     }
 
     @GetMapping("/id/{id}")
     @PreAuthorize("hasAnyRole('PATIENT', 'SECRETARY', 'ADMIN')")
-    public Invoice byId(@PathVariable Long id) {
+    public InvoiceResponse byId(@PathVariable Long id) {
         Invoice invoice = invoice(id);
         securityService.assertCanAccessPatientProfile(invoice.getPatient().getId());
-        return invoice;
+        return mapper.invoice(invoice);
     }
 
     @GetMapping("/patient/{patientId}")
     @PreAuthorize("hasAnyRole('PATIENT', 'SECRETARY', 'ADMIN')")
-    public List<Invoice> byPatient(@PathVariable Long patientId) {
+    public List<InvoiceResponse> byPatient(@PathVariable Long patientId) {
         securityService.assertCanAccessPatientProfile(patientId);
-        return invoiceService.getPatientInvoices(patientId);
+        return invoiceService.getPatientInvoices(patientId).stream().map(mapper::invoice).toList();
     }
 
     @PostMapping("/{id}/items")
     @PreAuthorize("hasAnyRole('SECRETARY', 'ADMIN')")
-    public ResponseEntity<InvoiceItem> addItem(@PathVariable Long id, @RequestBody InvoiceItem item) {
+    public ResponseEntity<InvoiceItemResponse> addItem(@PathVariable Long id, @RequestBody InvoiceItem item) {
         item.setInvoice(invoice(id));
-        return ResponseEntity.status(201).body(itemRepository.save(item));
+        return ResponseEntity.status(201).body(mapper.invoiceItem(itemRepository.save(item)));
     }
 
     @GetMapping("/{id}/items")
     @PreAuthorize("hasAnyRole('PATIENT', 'SECRETARY', 'ADMIN')")
-    public List<InvoiceItem> items(@PathVariable Long id) {
+    public List<InvoiceItemResponse> items(@PathVariable Long id) {
         byId(id);
-        return itemRepository.findByInvoiceId(id);
+        return itemRepository.findByInvoiceId(id).stream().map(mapper::invoiceItem).toList();
     }
 
     @PostMapping("/{id}/payments")
     @PreAuthorize("hasAnyRole('SECRETARY', 'ADMIN')")
-    public ResponseEntity<Payment> addPayment(@PathVariable Long id, @RequestBody Payment payment) {
+    public ResponseEntity<PaymentResponse> addPayment(@PathVariable Long id, @RequestBody Payment payment) {
         payment.setInvoice(invoice(id));
         payment.setPaymentDate(LocalDateTime.now());
         Payment saved = paymentRepository.save(payment);
         invoiceService.markAsPaid(id);
-        return ResponseEntity.status(201).body(saved);
+        return ResponseEntity.status(201).body(mapper.payment(saved));
     }
 
     @PostMapping("/{id}/acts")
     @PreAuthorize("hasAnyRole('DOCTOR', 'SECRETARY', 'ADMIN')")
-    public ResponseEntity<PerformedAct> addAct(@PathVariable Long id, @RequestBody PerformedAct act) {
+    public ResponseEntity<PerformedActResponse> addAct(@PathVariable Long id, @RequestBody PerformedAct act) {
         act.setAppointment(invoice(id).getAppointment());
-        return ResponseEntity.status(201).body(actRepository.save(act));
+        return ResponseEntity.status(201).body(mapper.performedAct(actRepository.save(act)));
     }
 
     @GetMapping("/{id}/pdf")
     @PreAuthorize("hasAnyRole('PATIENT', 'SECRETARY', 'ADMIN')")
     public ResponseEntity<byte[]> pdf(@PathVariable Long id) throws Exception {
-        Invoice invoice = byId(id);
+        Invoice invoice = invoice(id);
+        securityService.assertCanAccessPatientProfile(invoice.getPatient().getId());
         ByteArrayOutputStream output = new ByteArrayOutputStream();
         Document document = new Document();
         PdfWriter.getInstance(document, output);
