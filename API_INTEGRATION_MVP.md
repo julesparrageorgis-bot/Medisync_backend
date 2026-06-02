@@ -3,7 +3,7 @@
 ## Local startup
 
 ```bash
-./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
+./mvnw spring-boot:run
 ```
 
 Base URL: `http://localhost:8080/api`
@@ -88,11 +88,20 @@ Book a slot using the slot start time:
 Booking requires a future available slot and reserves it atomically. Cancelling releases
 the slot. Patients can only read or modify their own appointments.
 
+## Persistent local database
+
+The default `local` profile uses MySQL and keeps data after restarts. Follow
+[`MYSQL_SETUP.md`](MYSQL_SETUP.md) before starting the backend for the first time.
+
+Use the temporary H2 profile only for isolated testing:
+
+```bash
+./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
+```
+
 ## Current MVP limits
 
-- Admin and doctor seed accounts are still needed before exercising staff-only endpoints.
 - Appointment request and response DTO cleanup is still pending; the current payload uses
   nested entity IDs.
 - Medical-record ownership hardening and document metadata integration remain pending.
-- MySQL deployment schema migrations remain pending. Use the `dev` H2 profile for local
-  frontend integration until migrations are added.
+- Production deployment environment variables still need to be set before deployment.
