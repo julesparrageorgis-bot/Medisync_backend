@@ -2,6 +2,10 @@ package ma.medisync.medisync_backend.service;
 
 import lombok.RequiredArgsConstructor;
 import ma.medisync.medisync_backend.entity.TimeSlot;
+import ma.medisync.medisync_backend.entity.Doctor;
+import ma.medisync.medisync_backend.exception.ResourceNotFoundException;
+import ma.medisync.medisync_backend.exception.ValidationException;
+import ma.medisync.medisync_backend.repository.DoctorRepository;
 import ma.medisync.medisync_backend.repository.TimeSlotRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,6 +19,21 @@ import java.util.Optional;
 public class TimeSlotService {
 
     private final TimeSlotRepository timeSlotRepository;
+    private final DoctorRepository doctorRepository;
+
+    public TimeSlot createTimeSlot(Long doctorId, LocalDateTime startTime, LocalDateTime endTime) {
+        if (startTime == null || endTime == null || !startTime.isBefore(endTime)) {
+            throw ValidationException.invalidDateRange();
+        }
+        Doctor doctor = doctorRepository.findById(doctorId)
+                .orElseThrow(() -> ResourceNotFoundException.doctorNotFound(doctorId));
+        return createTimeSlot(TimeSlot.builder()
+                .doctor(doctor)
+                .startTime(startTime)
+                .endTime(endTime)
+                .dayOfWeek(startTime.getDayOfWeek().name())
+                .build());
+    }
 
     public TimeSlot createTimeSlot(TimeSlot timeSlot) {
         return timeSlotRepository.save(timeSlot);
@@ -29,7 +48,7 @@ public class TimeSlotService {
     }
 
     public List<TimeSlot> getDoctorAvailableSlots(Long doctorId) {
-        return timeSlotRepository.findByDoctorId(doctorId);
+        return timeSlotRepository.findByDoctorIdAndIsAvailableTrue(doctorId);
     }
 
     public List<TimeSlot> getSlotsByTimeRange(LocalDateTime startTime, LocalDateTime endTime) {

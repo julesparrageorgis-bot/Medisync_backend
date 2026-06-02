@@ -8,9 +8,11 @@ import ma.medisync.medisync_backend.dto.LoginRequest;
 import ma.medisync.medisync_backend.dto.LoginResponse;
 import ma.medisync.medisync_backend.dto.RegisterRequest;
 import ma.medisync.medisync_backend.entity.User;
+import ma.medisync.medisync_backend.entity.Patient;
 import ma.medisync.medisync_backend.entity.enums.UserRole;
 import ma.medisync.medisync_backend.service.UserService;
 import ma.medisync.medisync_backend.util.JwtTokenProvider;
+import ma.medisync.medisync_backend.util.PasswordUtil;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -60,14 +62,15 @@ public class AuthController {
             return ResponseEntity.badRequest().body("Email already exists");
         }
 
-        User user = User.builder()
-            .email(registerRequest.getEmail())
-            .password(passwordEncoder.encode(registerRequest.getPassword()))
-            .firstName(registerRequest.getFirstName())
-            .lastName(registerRequest.getLastName())
-            .userRole(UserRole.PATIENT)
-            .isActive(true)
-            .build();
+        PasswordUtil.validatePasswordStrength(registerRequest.getPassword());
+
+        Patient user = new Patient();
+        user.setEmail(registerRequest.getEmail());
+        user.setPassword(passwordEncoder.encode(registerRequest.getPassword()));
+        user.setFirstName(registerRequest.getFirstName());
+        user.setLastName(registerRequest.getLastName());
+        user.setUserRole(UserRole.PATIENT);
+        user.setIsActive(true);
 
         userService.save(user);
 

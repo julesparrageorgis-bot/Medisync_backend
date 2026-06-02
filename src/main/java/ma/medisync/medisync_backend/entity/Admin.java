@@ -1,5 +1,6 @@
 package ma.medisync.medisync_backend.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -28,6 +29,7 @@ public class Admin {
     private Boolean can2FA = true;
 
     @Column(length = 255)
+    @JsonIgnore
     private String twoFactorSecret; // For TOTP
 
     @Column(nullable = false)

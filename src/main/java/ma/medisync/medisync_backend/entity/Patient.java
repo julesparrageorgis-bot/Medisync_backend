@@ -1,5 +1,6 @@
 package ma.medisync.medisync_backend.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 import ma.medisync.medisync_backend.entity.enums.Gender;
@@ -22,7 +23,7 @@ import java.util.List;
 @DiscriminatorValue("PATIENT")
 public class Patient extends User {
 
-    @Column(unique = true, length = 50)
+    @Column(name = "social_security_number", unique = true, length = 50)
     private String socialSecurityNumber;
 
     private LocalDate dateOfBirth;
@@ -57,20 +58,26 @@ public class Patient extends User {
     private Office office;
 
     @OneToMany(mappedBy = "patient", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @JsonIgnore
     private List<Appointment> appointments = new ArrayList<>();
 
     @OneToMany(mappedBy = "patient", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @JsonIgnore
     private List<MedicalRecord> medicalRecords = new ArrayList<>();
 
     @OneToMany(mappedBy = "patient", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @JsonIgnore
     private List<Prescription> prescriptions = new ArrayList<>();
 
     @OneToMany(mappedBy = "patient", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @JsonIgnore
     private List<MedicalDocument> documents = new ArrayList<>();
 
     @OneToMany(mappedBy = "patient", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @JsonIgnore
     private List<Invoice> invoices = new ArrayList<>();
 
     @OneToMany(mappedBy = "patient", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @JsonIgnore
     private List<Review> reviews = new ArrayList<>();
 }

@@ -1,5 +1,7 @@
 package ma.medisync.medisync_backend.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import lombok.*;
 import ma.medisync.medisync_backend.entity.enums.UserRole;
@@ -35,6 +37,7 @@ public class User implements UserDetails {
     private String email;
 
     @Column(nullable = false)
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     private String password;
 
     @Column(length = 50)
@@ -64,6 +67,7 @@ public class User implements UserDetails {
     @Column(nullable = false)
     private LocalDateTime updatedAt;
 
+    @JsonIgnore
     private String twoFactorSecret;
 
     @Column(name = "two_factor_enabled")

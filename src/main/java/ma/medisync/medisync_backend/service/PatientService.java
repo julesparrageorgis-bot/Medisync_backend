@@ -24,7 +24,7 @@ public class PatientService {
     }
 
     public Optional<Patient> getPatientByUserId(Long userId) {
-        return patientRepository.findByUserId(userId);
+        return patientRepository.findById(userId);
     }
 
     public List<Patient> getAllPatients() {
