@@ -22,6 +22,7 @@
         <java.version>17</java.version>
         <maven.compiler.source>17</maven.compiler.source>
         <maven.compiler.target>17</maven.compiler.target>
+        <flyway.version>10.22.0</flyway.version>
     </properties>
     <dependencies>
         <!-- TOTP for 2FA -->
@@ -68,11 +69,22 @@
             <artifactId>mysql-connector-j</artifactId>
             <version>8.0.33</version>
         </dependency>
+        <dependency>
+            <groupId>org.mariadb.jdbc</groupId>
+            <artifactId>mariadb-java-client</artifactId>
+            <version>3.5.8</version>
+        </dependency>
 
         <!-- Versioned database migrations -->
         <dependency>
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-core</artifactId>
+            <version>${flyway.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-mysql</artifactId>
+            <version>${flyway.version}</version>
         </dependency>
 
         <!-- H2 Database for Development -->

@@ -70,6 +70,9 @@ Flyway creates the schema, planning extensions, persisted monthly financial repo
 development accounts automatically on the first start. Existing databases are upgraded with
 versioned migrations without schema recreation.
 
+The local profile uses the MariaDB JDBC driver and Flyway's MySQL/MariaDB module. Flyway may print
+an upgrade recommendation with MariaDB 11.8, but migrations are applied and validated normally.
+
 ## 4. Optional environment overrides
 
 The local defaults are suitable only for development. Override them when needed:
